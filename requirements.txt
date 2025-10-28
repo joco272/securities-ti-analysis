@@ -1,0 +1,10 @@
+fastapi
+pandas
+numpy
+ta-lib
+yfinance
+influxdb-client
+psycopg2-binary
+scikit-learn
+backtesting
+streamlit
