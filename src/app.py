@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from data_processing.data_retrieval import fetch_ohlcv
 from data_processing.indicators import calculate_indicators
-from data_processing.data_storage import write_indicators_to_influxdb
+from data_processing.data_storage import write_indicators_to_db
 from ml_models.backtesting_framework import run_backtest
 
 def main():
@@ -35,8 +35,8 @@ def main():
                 data_with_indicators = calculate_indicators(ohlcv_data)
 
                 # --- 3. Store Indicators ---
-                write_indicators_to_influxdb(ticker, interval, data_with_indicators.dropna())
-                st.success(f"Successfully stored {len(data_with_indicators.dropna())} data points in InfluxDB.")
+                write_indicators_to_db(ticker, interval, data_with_indicators.dropna())
+                st.success(f"Successfully stored {len(data_with_indicators.dropna())} data points in the local SQLite database.")
 
                 # --- 4. Display Data and Indicators ---
                 st.subheader(f"{ticker} Price and Technical Indicators ({interval})")

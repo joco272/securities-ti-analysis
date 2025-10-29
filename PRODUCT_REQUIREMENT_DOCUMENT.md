@@ -26,7 +26,7 @@ The primary user persona is a technically proficient individual who is actively 
 *   **Note on Intervals:** The '45m' interval is not supported by the `yfinance` library. A potential workaround is to resample 15-minute data to 45-minute intervals. This will be considered for a future release.
 *   **Technical Details:**
     *   The application will use the TA-Lib library for indicator calculations.
-    *   Indicator data will be stored in an InfluxDB time-series database.
+    *   Indicator data will be stored in a local SQLite database file (`securities_data.db`).
 
 ### 4.2. Machine Learning Models for Buy/Sell Signals
 
@@ -48,7 +48,7 @@ The primary user persona is a technically proficient individual who is actively 
 
 *   **Backend:** FastAPI
 *   **Data Processing:** Pandas, NumPy, TA-Lib
-*   **Database:** InfluxDB (for time-series data), PostgreSQL (for relational data)
+ *   **Database:** SQLite (for local data storage)
 *   **Machine Learning:** scikit-learn, backtesting.py
 *   **Frontend:** Streamlit
 *   **Data Source:** yfinance (initially), with the ability to add other sources like finnhub, polygon.io, or alphavantage.
