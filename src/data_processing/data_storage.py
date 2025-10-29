@@ -38,7 +38,12 @@ def write_indicators_to_db(ticker: str, interval: str, data: pd.DataFrame):
         indicators = {
             "macd": {"macd": row.get("macd"), "signal": row.get("macdsignal"), "hist": row.get("macdhist")},
             "rsi": {"value": row.get("rsi")},
-            "mfi": {"value": row.get("mfi")}
+            "mfi": {"value": row.get("mfi")},
+            "stoch_rsi": {"k": row.get("stoch_rsi_k"), "d": row.get("stoch_rsi_d")},
+            "ad": {"value": row.get("ad")},
+            "obv": {"value": row.get("obv")},
+            "sma": {"sma50": row.get("sma50"), "sma200": row.get("sma200")},
+            "ao": {"value": row.get("ao")}
         }
 
         for name, values in indicators.items():

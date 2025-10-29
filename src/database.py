@@ -14,13 +14,13 @@ def get_db_connection():
 
 def initialize_database():
     """
-    Initializes the database by creating the necessary tables if they do not exist.
-    This new schema is designed to be extensible for new indicators.
+    Initializes the database by creating all necessary tables for price data,
+    indicators, and portfolio management if they do not already exist.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Create the 'price_data' table for OHLCV data
+    # --- Price and Indicator Tables ---
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS price_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,25 +36,51 @@ def initialize_database():
     )
     """)
 
-    # Create the 'indicator_data' table for storing indicator values as JSON
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS indicator_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         price_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         values_json TEXT NOT NULL,
-        FOREIGN KEY (price_id) REFERENCES price_data (id),
+        FOREIGN KEY (price_id) REFERENCES price_data (id) ON DELETE CASCADE,
         UNIQUE(price_id, name)
+    )
+    """)
+
+    # --- Portfolio Management Tables ---
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS watchlists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS watchlist_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        watchlist_id INTEGER NOT NULL,
+        ticker TEXT NOT NULL,
+        FOREIGN KEY (watchlist_id) REFERENCES watchlists (id) ON DELETE CASCADE,
+        UNIQUE(watchlist_id, ticker)
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticker TEXT NOT NULL,
+        transaction_date TEXT NOT NULL,
+        transaction_type TEXT NOT NULL CHECK(transaction_type IN ('buy', 'sell')),
+        quantity REAL NOT NULL,
+        price_per_share REAL NOT NULL
     )
     """)
 
     conn.commit()
     conn.close()
-    print("Database initialized successfully with new extensible schema.")
+    print("Database initialized successfully.")
 
 if __name__ == '__main__':
-    # Re-initialize the database with the new schema
-    if os.path.exists(DATABASE_FILE):
-        os.remove(DATABASE_FILE)
-        print(f"Removed old database file: {DATABASE_FILE}")
+    # This will ensure all tables are created if the file is run directly.
+    # It's safe to run multiple times.
     initialize_database()

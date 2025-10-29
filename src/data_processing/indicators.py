@@ -1,5 +1,6 @@
 import pandas as pd
 import talib
+import pandas_ta as ta
 import numpy as np
 
 def calculate_indicators(ohlcv_df: pd.DataFrame) -> pd.DataFrame:
@@ -14,23 +15,46 @@ def calculate_indicators(ohlcv_df: pd.DataFrame) -> pd.DataFrame:
     """
     df = ohlcv_df.copy()
 
-    # Extract numpy arrays for talib and ensure they are of type double
+    # --- TA-Lib Indicators ---
+    # Ensure data is in the correct format for TA-Lib
     close = df['Close'].values.astype(np.double)
     high = df['High'].values.astype(np.double)
     low = df['Low'].values.astype(np.double)
     volume = df['Volume'].values.astype(np.double)
 
-    # Calculate MACD
+    # MACD
     macd, macdsignal, macdhist = talib.MACD(close)
     df['macd'] = macd
     df['macdsignal'] = macdsignal
     df['macdhist'] = macdhist
 
-    # Calculate MFI
+    # MFI
     df['mfi'] = talib.MFI(high, low, close, volume)
 
-    # Calculate RSI
+    # RSI
     df['rsi'] = talib.RSI(close)
+
+    # Stochastic RSI
+    stoch_rsi_k, stoch_rsi_d = talib.STOCHRSI(close)
+    df['stoch_rsi_k'] = stoch_rsi_k
+    df['stoch_rsi_d'] = stoch_rsi_d
+
+    # Accumulation/Distribution Line (A/D)
+    df['ad'] = talib.AD(high, low, close, volume)
+
+    # On-Balance Volume (OBV)
+    df['obv'] = talib.OBV(close, volume)
+
+    # Simple Moving Averages
+    df['sma50'] = talib.SMA(close, timeperiod=50)
+    df['sma200'] = talib.SMA(close, timeperiod=200)
+
+    # --- Pandas TA Indicators ---
+    # The pandas-ta library can directly work with the DataFrame
+    df.ta.ao(append=True)
+    # The column name will be 'AO_5_34', let's rename it for simplicity
+    if 'AO_5_34' in df.columns:
+        df.rename(columns={'AO_5_34': 'ao'}, inplace=True)
 
     return df
 
