@@ -7,3 +7,4 @@ scikit-learn
 backtesting
 streamlit
 pandas-ta
+plotly

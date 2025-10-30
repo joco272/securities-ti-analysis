@@ -12,6 +12,7 @@ from database import initialize_database
 from portfolio import watchlist as wl
 from portfolio import transaction as trans
 from portfolio import summary as port
+from plotting.charts import create_multi_pane_chart
 
 def main():
     """
@@ -47,9 +48,13 @@ def main():
     start_date = st.sidebar.date_input("Start date", pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
+    # --- Indicator Selection ---
+    available_indicators = ["MACD", "RSI", "MFI", "Stochastic RSI", "OBV", "A/D", "Awesome Oscillator"]
+    selected_indicators = st.sidebar.multiselect("Select indicators to display:", available_indicators, default=["MACD", "RSI"])
+
     if st.sidebar.button("Fetch, Store, and Analyze"):
         # This block remains for the analysis part of the app
-        run_analysis(ticker_input, interval, start_date, end_date)
+        run_analysis(ticker_input, interval, start_date, end_date, selected_indicators)
 
     # --- Portfolio Management Section ---
     st.sidebar.markdown("---")
@@ -138,7 +143,7 @@ def main():
         st.dataframe(trans_df)
 
 
-def run_analysis(ticker, interval, start_date, end_date):
+def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
     with st.spinner("Processing..."):
         try:
             # --- 1. Fetch fresh data from yfinance ---
@@ -168,10 +173,9 @@ def run_analysis(ticker, interval, start_date, end_date):
             # --- 5. Display Data and Indicators ---
             st.subheader(f"Displaying Data for {ticker} ({interval})")
 
-            # Create a list of available indicator columns for the chart
-            chart_cols = ['close', 'sma50', 'sma200', 'rsi', 'mfi', 'macd', 'macdsignal']
-            available_chart_cols = [col for col in chart_cols if col in display_df.columns]
-            st.line_chart(display_df[available_chart_cols])
+            # Create and display the advanced multi-pane chart
+            fig = create_multi_pane_chart(display_df, selected_indicators)
+            st.plotly_chart(fig, use_container_width=True)
 
             st.subheader("Latest Data and Indicators")
             st.dataframe(display_df.tail())
