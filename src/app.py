@@ -13,6 +13,9 @@ from portfolio import watchlist as wl
 from portfolio import transaction as trans
 from portfolio import summary as port
 from plotting.charts import create_multi_pane_chart
+from ml_models.feature_engineering import prepare_data_for_ml
+from ml_models.model import train_and_save_model
+from ml_models.backtesting_framework import MlStrategy
 
 def main():
     """
@@ -115,6 +118,16 @@ def main():
     st.markdown("---")
     st.header("Transaction Log")
 
+    # --- Machine Learning Section ---
+    st.sidebar.markdown("---")
+    st.sidebar.header("Machine Learning")
+    if st.sidebar.button("Train Model"):
+        run_model_training(ticker_input, interval)
+
+    if st.sidebar.button("Run ML Backtest"):
+        run_ml_backtest(ticker_input, interval)
+
+
     # Form to add a new transaction
     with st.expander("Add New Transaction"):
         with st.form(key="add_transaction_form"):
@@ -190,6 +203,73 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
+
+
+def run_model_training(ticker, interval):
+    """
+    Fetches data, prepares it, and trains a model, displaying status in the UI.
+    """
+    st.header("Model Training")
+    with st.spinner(f"Training model for {ticker}..."):
+        try:
+            # 1. Get data
+            df = fetch_data_with_indicators(ticker, interval)
+            if df.empty or len(df) < 50: # Need sufficient data to train
+                st.warning("Not enough data available to train a model.")
+                return
+
+            # 2. Prepare data
+            X, y = prepare_data_for_ml(df)
+            if X.empty:
+                st.warning("Could not generate any training samples.")
+                return
+
+            # 3. Train and save model
+            model_path = f"models/{ticker}_{interval}_model.joblib"
+            accuracy = train_and_save_model(X, y, model_path)
+
+            st.success(f"Model for {ticker} ({interval}) trained successfully!")
+            st.write(f"Model saved to: `{model_path}`")
+            st.write(f"Model accuracy on test set: **{accuracy:.2f}**")
+
+        except Exception as e:
+            st.error(f"An error occurred during model training: {e}")
+
+
+def run_ml_backtest(ticker, interval):
+    """
+    Runs a backtest using the pre-trained ML model and displays results.
+    """
+    st.header("ML Backtest Results")
+    model_path = f"models/{ticker}_{interval}_model.joblib"
+
+    if not os.path.exists(model_path):
+        st.warning(f"No trained model found for {ticker} ({interval}). Please train the model first.")
+        return
+
+    with st.spinner(f"Running ML backtest for {ticker}..."):
+        try:
+            # 1. Get data
+            df = fetch_data_with_indicators(ticker, interval)
+            if df.empty:
+                st.warning("No data available to run backtest.")
+                return
+
+            # 2. Run backtest with the MlStrategy
+            results = run_backtest(df.dropna(), strategy=MlStrategy, model_path=model_path)
+
+            st.subheader("Backtest Performance")
+            st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
+            st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
+            st.write(f"Return [%]: {results['Return [%]']:.2f}")
+            st.write(f"# Trades: {results['# Trades']}")
+
+            # Display the plot of the backtest
+            st.bokeh_chart(results._plot_rendered)
+
+        except Exception as e:
+            st.error(f"An error occurred during backtest: {e}")
+
 
 if __name__ == "__main__":
     main()
