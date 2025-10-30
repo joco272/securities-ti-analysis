@@ -3,18 +3,15 @@ import pandas as pd
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'portfolio'))
-
-
 from data_processing.data_retrieval import fetch_ohlcv
 from data_processing.indicators import calculate_indicators
 from data_processing.data_storage import write_indicators_to_db
 from data_processing.data_query import fetch_data_with_indicators
 from ml_models.backtesting_framework import run_backtest
 from database import initialize_database
-import portfolio.watchlist as wl
-import portfolio.transaction as trans
+from portfolio import watchlist as wl
+from portfolio import transaction as trans
+from portfolio import summary as port
 
 def main():
     """
@@ -24,6 +21,24 @@ def main():
 
     # Initialize the database on first run
     initialize_database()
+
+    # --- Main Area ---
+    st.header("My Portfolio")
+    portfolio_summary = port.get_portfolio_summary()
+
+    if not portfolio_summary:
+        st.info("Your portfolio is empty. Add transactions in the 'Transaction Log' section below to see your holdings.")
+    else:
+        # Convert to DataFrame for better display and formatting
+        portfolio_df = pd.DataFrame(portfolio_summary)
+
+        # Formatting the currency columns
+        portfolio_df['average_cost'] = portfolio_df['average_cost'].map('${:,.2f}'.format)
+        portfolio_df['current_price'] = portfolio_df['current_price'].map('${:,.2f}'.format)
+        portfolio_df['market_value'] = portfolio_df['market_value'].map('${:,.2f}'.format)
+        portfolio_df['unrealized_pl'] = portfolio_df['unrealized_pl'].map('${:,.2f}'.format)
+
+        st.dataframe(portfolio_df)
 
     # --- Sidebar for User Input ---
     st.sidebar.header("Analysis Parameters")
