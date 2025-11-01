@@ -194,12 +194,13 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
             st.dataframe(display_df.tail())
 
             # --- 6. Run Backtest ---
-            st.subheader("Backtesting Results")
-            results = run_backtest(display_df.dropna())
+            st.subheader("Backtesting Results (RSI Strategy)")
+            stats, plot = run_backtest(display_df.dropna())
 
             # --- 7. Display Backtest Results ---
-            st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
-            st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
+            st.write(f"Sharpe Ratio: {stats['Sharpe Ratio']:.2f}")
+            st.write(f"Win Rate [%]: {stats['Win Rate [%]']:.2f}")
+            st.bokeh_chart(plot)
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
@@ -256,16 +257,16 @@ def run_ml_backtest(ticker, interval):
                 return
 
             # 2. Run backtest with the MlStrategy
-            results = run_backtest(df.dropna(), strategy=MlStrategy, model_path=model_path)
+            stats, plot = run_backtest(df.dropna(), strategy=MlStrategy, model_path=model_path)
 
             st.subheader("Backtest Performance")
-            st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
-            st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
-            st.write(f"Return [%]: {results['Return [%]']:.2f}")
-            st.write(f"# Trades: {results['# Trades']}")
+            st.write(f"Sharpe Ratio: {stats['Sharpe Ratio']:.2f}")
+            st.write(f"Win Rate [%]: {stats['Win Rate [%]']:.2f}")
+            st.write(f"Return [%]: {stats['Return [%]']:.2f}")
+            st.write(f"# Trades: {stats['# Trades']}")
 
             # Display the plot of the backtest
-            st.bokeh_chart(results._plot_rendered)
+            st.bokeh_chart(plot)
 
         except Exception as e:
             st.error(f"An error occurred during backtest: {e}")

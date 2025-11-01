@@ -26,10 +26,10 @@ class MlStrategy(Strategy):
         # Get the prediction from the model
         signal = self.model.predict(latest_data)[0]
 
-        if signal == 1: # Buy signal
-            self.buy()
+        if signal == 1 and not self.position: # Buy signal, and only if we are not already in a position
+            self.buy(size=0.95) # Use 95% of equity to avoid margin errors
         elif signal == -1: # Sell signal
-            self.position.close() # or self.sell() if shorting is desired
+            self.position.close()
 
 class RsiOscillator(Strategy):
     """
@@ -44,8 +44,8 @@ class RsiOscillator(Strategy):
     def next(self):
         if crossover(self.data.rsi, self.upper_bound):
             self.position.close()
-        elif crossover(self.lower_bound, self.data.rsi):
-            self.buy()
+        elif crossover(self.lower_bound, self.data.rsi) and not self.position:
+            self.buy(size=0.95)
 
 def run_backtest(data: pd.DataFrame, strategy: Strategy = RsiOscillator, **kwargs):
     """
@@ -65,7 +65,9 @@ def run_backtest(data: pd.DataFrame, strategy: Strategy = RsiOscillator, **kwarg
     # Pass any extra keyword arguments (like model_path) to the strategy
     bt = Backtest(data_for_backtest, strategy, cash=10000, commission=.002)
     stats = bt.run(**kwargs)
-    return stats
+    # Generate the plot but don't open it in a new browser window
+    plot = bt.plot(open_browser=False)
+    return stats, plot
 
 if __name__ == '__main__':
     # --- Test block for the ML backtesting strategy ---
