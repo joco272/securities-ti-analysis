@@ -1,103 +1,81 @@
-from backtesting import Backtest, Strategy
-from backtesting.lib import crossover
 import pandas as pd
+import vectorbt as vbt
 
-
-from .model import load_model
-
-class MlStrategy(Strategy):
+def run_backtest(price_data: pd.DataFrame, entry_signals: pd.Series, exit_signals: pd.Series):
     """
-    A backtesting strategy that uses a pre-trained machine learning model to make trading decisions.
+    Runs a backtest using the vectorbt library.
+
+    Args:
+        price_data: DataFrame with at least a 'close' column for the price.
+        entry_signals: A boolean pandas Series indicating entry points (True to enter).
+        exit_signals: A boolean pandas Series indicating exit points (True to exit).
+
+    Returns:
+        A tuple of (stats, plot):
+        stats: A dictionary of performance metrics.
+        plot: A Plotly Figure object of the backtest.
     """
-    model_path = None # This will be set before running the backtest
+    # Ensure the price_data index is a DatetimeIndex
+    price_data.index = pd.to_datetime(price_data.index)
 
-    def init(self):
-        self.model = load_model(self.model_path)
-        if self.model is None:
-            raise Exception(f"Could not load model from {self.model_path}. Train the model first.")
+    # Run the portfolio simulation from the signals
+    portfolio = vbt.Portfolio.from_signals(
+        price_data['close'],
+        entries=entry_signals,
+        exits=exit_signals,
+        freq='1D' # Assuming daily frequency, adjust if necessary
+    )
 
-        # Prepare the feature columns based on the model's expected features
-        self.feature_columns = self.model.feature_names_in_
+    # --- Calculate Performance Metrics ---
+    stats = portfolio.stats()
+    sharpe_ratio = stats['Sharpe Ratio']
+    win_rate = stats['Win Rate [%]']
+    total_return = stats['Total Return [%]']
+    num_trades = stats['Total Trades']
 
-    def next(self):
-        # Get the latest data point for the features the model expects
-        latest_data = self.data.df.iloc[[-1]][self.feature_columns]
+    # --- Generate the Plot ---
+    plot = portfolio.plot()
 
-        # Get the prediction from the model
-        signal = self.model.predict(latest_data)[0]
+    return {
+        "Sharpe Ratio": sharpe_ratio,
+        "Win Rate [%]": win_rate,
+        "Total Return [%]": total_return,
+        "# Trades": num_trades
+    }, plot
 
-        if signal == 1 and not self.position: # Buy signal, and only if we are not already in a position
-            self.buy(size=0.95) # Use 95% of equity to avoid margin errors
-        elif signal == -1: # Sell signal
-            self.position.close()
-
-class RsiOscillator(Strategy):
-    """
-    A simple RSI-based trading strategy for comparison.
-    """
-    upper_bound = 70
-    lower_bound = 30
-
-    def init(self):
-        pass
-
-    def next(self):
-        if crossover(self.data.rsi, self.upper_bound):
-            self.position.close()
-        elif crossover(self.lower_bound, self.data.rsi) and not self.position:
-            self.buy(size=0.95)
-
-def run_backtest(data: pd.DataFrame, strategy: Strategy = RsiOscillator, **kwargs):
-    """
-    Runs a backtest on the given data, which must contain OHLCV and 'rsi' columns.
-    The column names for OHLCV must be capitalized: 'Open', 'High', 'Low', 'Close', 'Volume'.
-    """
-    # The backtesting library requires capitalized column names for OHLCV.
-    data_for_backtest = data.copy()
-    data_for_backtest.rename(columns={
-        'open': 'Open',
-        'high': 'High',
-        'low': 'Low',
-        'close': 'Close',
-        'volume': 'Volume'
-    }, inplace=True)
-
-    # Pass any extra keyword arguments (like model_path) to the strategy
-    bt = Backtest(data_for_backtest, strategy, cash=10000, commission=.002)
-    stats = bt.run(**kwargs)
-    # Generate the plot but don't open it in a new browser window
-    plot = bt.plot(open_browser=False)
-    return stats, plot
 
 if __name__ == '__main__':
-    # --- Test block for the ML backtesting strategy ---
-    import sys
-    import os
-    # Add the project root to the python path to allow absolute imports
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    from src.data_processing.data_query import fetch_data_with_indicators
+    # --- Test block for the new vectorbt backtesting framework ---
+    # To run this test, execute `python -m src.ml_models.backtesting_framework` from the project root.
+    from ..data_processing.data_query import fetch_data_with_indicators
 
     ticker_to_test = "MSFT"
     interval_to_test = "1d"
-    model_path_for_test = f"models/{ticker_to_test}_{interval_to_test}_model.joblib"
 
-    print(f"--- Testing ML Backtesting Strategy for {ticker_to_test} ---")
+    print(f"--- Testing vectorbt Backtesting Framework for {ticker_to_test} ---")
 
     # 1. Get data
     df = fetch_data_with_indicators(ticker_to_test, interval_to_test)
     if df.empty:
         raise Exception("No data found to test backtesting.")
 
-    # 2. Run the backtest with the MlStrategy
-    # We pass the model_path as a keyword argument to the strategy
-    try:
-        results = run_backtest(df.dropna(), strategy=MlStrategy, model_path=model_path_for_test)
+    # 2. Generate some simple example signals (e.g., RSI crossover)
+    rsi = df['rsi']
+    entry_signals = (rsi < 30).shift(1, fill_value=False) # Enter on the day *after* RSI crosses below 30
+    exit_signals = (rsi > 70).shift(1, fill_value=False)  # Exit on the day *after* RSI crosses above 70
 
-        print("\n--- ML Backtest Results ---")
-        print(f"Sharpe Ratio: {results['Sharpe Ratio']}")
-        print(f"Win Rate [%]: {results['Win Rate [%]']}")
+    # 3. Run the backtest
+    try:
+        results, fig = run_backtest(df, entry_signals, exit_signals)
+
+        print("\n--- vectorbt Backtest Results ---")
+        print(results)
+
+        # To view the plot, uncomment the line below
+        # fig.show()
+        print("\nPlot created. To view, uncomment 'fig.show()' in the test block.")
+
     except Exception as e:
-        print(f"\nAn error occurred during ML backtest: {e}")
-        print("This is expected if the model has not been trained yet.")
+        print(f"\nAn error occurred during backtest: {e}")
 
     print("\nTest complete.")

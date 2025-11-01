@@ -1,11 +1,10 @@
 fastapi
 pandas
-numpy==1.23.5
+numpy
 ta-lib
 yfinance
 scikit-learn
-backtesting
 streamlit
 pandas-ta
 plotly
-bokeh<3.0
+vectorbt
