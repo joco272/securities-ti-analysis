@@ -31,8 +31,8 @@ def prepare_data_for_ml(df: pd.DataFrame):
     # The goal is to predict the direction of the price change in the next N days.
     # 1 for an increase (buy), -1 for a decrease (sell), 0 for no significant change.
     n_days_future = 5
-    future_price = df_ml['Close'].shift(-n_days_future)
-    price_change_percent = (future_price - df_ml['Close']) / df_ml['Close'] * 100
+    future_price = df_ml['close'].shift(-n_days_future)
+    price_change_percent = (future_price - df_ml['close']) / df_ml['close'] * 100
 
     # Define thresholds for buy/sell signals
     buy_threshold = 1.0  # e.g., price increase of >1%

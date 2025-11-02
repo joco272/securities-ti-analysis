@@ -17,10 +17,10 @@ def calculate_indicators(ohlcv_df: pd.DataFrame) -> pd.DataFrame:
 
     # --- TA-Lib Indicators ---
     # Ensure data is in the correct format for TA-Lib
-    close = df['Close'].values.astype(np.double)
-    high = df['High'].values.astype(np.double)
-    low = df['Low'].values.astype(np.double)
-    volume = df['Volume'].values.astype(np.double)
+    close = df['close'].values.astype(np.double)
+    high = df['high'].values.astype(np.double)
+    low = df['low'].values.astype(np.double)
+    volume = df['volume'].values.astype(np.double)
 
     # MACD
     macd, macdsignal, macdhist = talib.MACD(close)
