@@ -3,21 +3,18 @@ import pandas as pd
 import sys
 import os
 
-# Ensure the src directory is in the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.data_processing.data_retrieval import fetch_ohlcv
-from src.data_processing.indicators import calculate_indicators
-from src.data_processing.data_storage import write_indicators_to_db
-from src.data_processing.data_query import fetch_data_with_indicators
-from src.ml_models.backtesting_framework import run_backtest as run_vbt_backtest
-from src.database import initialize_database
-from src.portfolio import watchlist as wl
-from src.portfolio import transaction as trans
-from src.portfolio import summary as port
-from src.plotting.charts import create_multi_pane_chart
-from src.ml_models.feature_engineering import prepare_data_for_ml
-from src.ml_models.model import train_and_save_model, load_model
+from data_processing.data_retrieval import fetch_ohlcv
+from data_processing.indicators import calculate_indicators
+from data_processing.data_storage import write_indicators_to_db
+from data_processing.data_query import fetch_data_with_indicators
+from database import initialize_database
+from portfolio import watchlist as wl
+from portfolio import transaction as trans
+from portfolio import summary as port
+from plotting.charts import create_multi_pane_chart
+from ml_models.feature_engineering import prepare_data_for_ml
+from ml_models.model import train_and_save_model, load_model
+from ml_models.backtesting_framework import run_backtest as run_vbt_backtest
 
 
 def generate_rsi_signals(df):
@@ -33,6 +30,7 @@ def generate_ml_signals(model, df):
     features_present = [col for col in feature_cols if col in df.columns]
     X = df[features_present]
 
+    # Ensure no NaN values are passed to the model
     X.dropna(inplace=True)
     if X.empty:
         return pd.Series(dtype=bool), pd.Series(dtype=bool)
@@ -40,36 +38,49 @@ def generate_ml_signals(model, df):
     predictions = model.predict(X)
     signals = pd.Series(predictions, index=X.index)
 
-    entry_signals = (signals == 1)
-    exit_signals = (signals == -1)
+    # Align signals with the original DataFrame index
+    entry_signals = (signals == 1).reindex(df.index, fill_value=False)
+    exit_signals = (signals == -1).reindex(df.index, fill_value=False)
     return entry_signals, exit_signals
 
 
 def main():
+    """
+    The main function for the Streamlit application.
+    """
     st.title("Securities Analysis and Backtesting App")
+
+    # Initialize the database on first run
     initialize_database()
 
     # --- Main Area ---
     st.header("My Portfolio")
     portfolio_summary = port.get_portfolio_summary()
+
     if not portfolio_summary:
-        st.info("Your portfolio is empty.")
+        st.info("Your portfolio is empty. Add transactions in the 'Transaction Log' section below to see your holdings.")
     else:
+        # Convert to DataFrame for better display and formatting
         portfolio_df = pd.DataFrame(portfolio_summary)
-        # Formatting for display
-        for col in ['average_cost', 'current_price', 'market_value', 'unrealized_pl']:
-            portfolio_df[col] = portfolio_df[col].map('${:,.2f}'.format)
+
+        # Formatting the currency columns
+        portfolio_df['average_cost'] = portfolio_df['average_cost'].map('${:,.2f}'.format)
+        portfolio_df['current_price'] = portfolio_df['current_price'].map('${:,.2f}'.format)
+        portfolio_df['market_value'] = portfolio_df['market_value'].map('${:,.2f}'.format)
+        portfolio_df['unrealized_pl'] = portfolio_df['unrealized_pl'].map('${:,.2f}'.format)
+
         st.dataframe(portfolio_df)
 
-    # --- Sidebar ---
+    # --- Sidebar for User Input ---
     st.sidebar.header("Analysis Parameters")
     ticker_input = st.sidebar.text_input("Enter a stock ticker (e.g., AAPL):", "AAPL")
-    interval = st.sidebar.selectbox("Select interval:", ('1d', '1h', '15m'), index=0)
+    interval = st.sidebar.selectbox("Select interval:", ('15m', '1h', '4h', '1d'), index=3)
     start_date = st.sidebar.date_input("Start date", pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
+    # --- Indicator Selection ---
     available_indicators = ["MACD", "RSI", "MFI", "Stochastic RSI", "OBV", "A/D", "Awesome Oscillator"]
-    selected_indicators = st.sidebar.multiselect("Select indicators:", available_indicators, default=["MACD", "RSI"])
+    selected_indicators = st.sidebar.multiselect("Select indicators to display:", available_indicators, default=["MACD", "RSI"])
 
     if st.sidebar.button("Fetch, Store, and Analyze"):
         run_analysis(ticker_input, interval, start_date, end_date, selected_indicators)
@@ -82,7 +93,7 @@ def main():
     if st.sidebar.button("Run ML Backtest"):
         run_ml_backtest(ticker_input, interval)
 
-    # --- Watchlist Section ---
+    # --- Portfolio Management Section ---
     st.sidebar.markdown("---")
     st.sidebar.header("Portfolio Management")
     new_watchlist_name = st.sidebar.text_input("Create New Watchlist:")
@@ -90,61 +101,137 @@ def main():
         if new_watchlist_name:
             wl.add_watchlist(new_watchlist_name)
             st.sidebar.success(f"Watchlist '{new_watchlist_name}' created.")
+            # We don't need to manually refresh, Streamlit's state management will handle it
         else:
-            st.sidebar.warning("Please enter a name.")
+            st.sidebar.warning("Please enter a name for the new watchlist.")
 
+    # --- Main Area for Watchlist Display ---
     st.markdown("---")
     st.header("Watchlists")
+
     all_watchlists = wl.get_watchlists()
     if not all_watchlists:
-        st.info("No watchlists created yet.")
+        st.info("No watchlists created yet. Use the sidebar to add one.")
     else:
+        # Create a select box for all available watchlists
         watchlist_names = {w['name']: w['id'] for w in all_watchlists}
-        selected_name = st.selectbox("Select a watchlist:", list(watchlist_names.keys()))
-        if selected_name:
-            selected_id = watchlist_names[selected_name]
-            st.subheader(f"Items in '{selected_name}'")
-            items = wl.get_watchlist_items(selected_id)
-            # (UI for adding/removing tickers)
+        selected_watchlist_name = st.selectbox("Select a watchlist to view:", list(watchlist_names.keys()))
+
+        if selected_watchlist_name:
+            selected_watchlist_id = watchlist_names[selected_watchlist_name]
+
+            # --- Display and Manage Watchlist Items ---
+            st.subheader(f"Items in '{selected_watchlist_name}'")
+            watchlist_items = wl.get_watchlist_items(selected_watchlist_id)
+
+            # Form to add a new ticker
+            with st.form(key="add_ticker_form"):
+                new_ticker = st.text_input("Add Ticker to this Watchlist (e.g., NVDA):")
+                submit_button = st.form_submit_button("Add Ticker")
+                if submit_button and new_ticker:
+                    wl.add_to_watchlist(selected_watchlist_id, new_ticker)
+                    st.success(f"Added {new_ticker} to '{selected_watchlist_name}'.")
+                    # No need to refresh, Streamlit will re-run
+
+            # Display existing items with a 'Remove' button for each
+            if not watchlist_items:
+                st.write("This watchlist is empty.")
+            else:
+                for item in watchlist_items:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.write(item['ticker'])
+                    with col2:
+                        # Use a unique key for each button
+                        if st.button(f"Remove", key=f"remove_{item['id']}"):
+                            wl.remove_from_watchlist(item['id'])
+                            # No need to refresh
+                            st.experimental_rerun() # Force an immediate rerun for snappier UI
 
     # --- Transaction Log Section ---
     st.markdown("---")
     st.header("Transaction Log")
-    # (UI for adding/viewing transactions)
+
+    # Form to add a new transaction
+    with st.expander("Add New Transaction"):
+        with st.form(key="add_transaction_form"):
+            trans_ticker = st.text_input("Ticker")
+            trans_date = st.date_input("Transaction Date")
+            trans_type = st.selectbox("Type", ["buy", "sell"])
+            trans_quantity = st.number_input("Quantity", min_value=0.0, format="%.4f")
+            trans_price = st.number_input("Price per Share", min_value=0.0, format="%.2f")
+
+            submit_trans_button = st.form_submit_button("Add Transaction")
+            if submit_trans_button:
+                if all([trans_ticker, trans_date, trans_type, trans_quantity > 0, trans_price > 0]):
+                    trans.add_transaction(trans_ticker, trans_date, trans_type, trans_quantity, trans_price)
+                    st.success(f"Transaction for {trans_ticker} added.")
+                else:
+                    st.warning("Please fill out all fields with valid values.")
+
+    # Display transactions for the ticker being analyzed
+    st.subheader(f"History for {ticker_input}")
+    transactions = trans.get_transactions(ticker_input)
+    if not transactions:
+        st.info(f"No transactions found for {ticker_input}.")
+    else:
+        # Create a DataFrame for better display
+        trans_df = pd.DataFrame(transactions)
+        st.dataframe(trans_df)
 
 
 def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
     with st.spinner("Processing..."):
-        st.write("Fetching fresh data...")
-        ohlcv_data = fetch_ohlcv(ticker, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), interval)
-        if ohlcv_data.empty:
-            st.warning("No new data found.")
-            return
+        try:
+            # --- 1. Fetch fresh data from yfinance ---
+            st.write(f"Fetching fresh data for {ticker}...")
+            ohlcv_data = fetch_ohlcv(ticker, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), interval)
+            if ohlcv_data.empty:
+                st.warning(f"No new data found for {ticker}.")
+                return
 
-        st.write("Calculating indicators...")
-        data_with_indicators = calculate_indicators(ohlcv_data)
+            # --- 2. Calculate Indicators ---
+            st.write("Calculating technical indicators...")
+            data_with_indicators = calculate_indicators(ohlcv_data)
 
-        st.write("Storing data...")
-        write_indicators_to_db(ticker, interval, data_with_indicators)
-        st.success("Data processed and stored.")
+            # --- 3. Store Price and Indicators in DB ---
+            st.write("Storing data in the database...")
+            write_indicators_to_db(ticker, interval, data_with_indicators)
+            st.success(f"Successfully processed and stored data for {len(data_with_indicators)} records.")
 
-        st.write("Querying data for display...")
-        display_df = fetch_data_with_indicators(ticker, interval)
-        if display_df.empty:
-            st.warning("No data found in database.")
-            return
+            # --- 4. Query and Reconstruct Data from DB ---
+            st.write("Querying data from the database for display...")
+            display_df = fetch_data_with_indicators(ticker, interval)
 
-        st.subheader(f"Analysis for {ticker}")
-        fig = create_multi_pane_chart(display_df, selected_indicators)
-        st.plotly_chart(fig, use_container_width=True)
+            if display_df.empty:
+                st.warning("No data found in the database for the selected parameters.")
+                return
 
-        st.subheader("Backtesting Results (RSI Strategy)")
-        entry, exit_ = generate_rsi_signals(display_df)
-        stats, plot = run_vbt_backtest(display_df, entry, exit_)
-        st.write(pd.Series(stats, name="Performance"))
-        st.plotly_chart(plot)
+            # --- 5. Display Data and Indicators ---
+            st.subheader(f"Displaying Data for {ticker} ({interval})")
+
+            # Create and display the advanced multi-pane chart
+            fig = create_multi_pane_chart(display_df, selected_indicators)
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.subheader("Latest Data and Indicators")
+            st.dataframe(display_df.tail())
+
+            # --- 6. Run Backtest (Simple RSI Strategy) ---
+            st.subheader("Backtesting Results (RSI Strategy)")
+            entry, exit_ = generate_rsi_signals(display_df)
+            stats, plot = run_vbt_backtest(display_df, entry, exit_)
+
+            # Display stats and plot
+            st.write(pd.Series(stats, name="Performance"))
+            st.plotly_chart(plot)
+
+        except Exception as e:
+            st.error(f"An error occurred during analysis: {e}")
+
 
 def run_model_training(ticker, interval):
+    """Handles the model training process."""
     st.header("Model Training")
     with st.spinner("Preparing data for training..."):
         data = fetch_data_with_indicators(ticker, interval)
@@ -153,34 +240,46 @@ def run_model_training(ticker, interval):
             return
 
         features, target = prepare_data_for_ml(data)
-        if features.empty:
+        if features.empty or target.empty:
             st.warning("Not enough data to create features for the model.")
             return
 
     with st.spinner(f"Training model for {ticker}..."):
+        # Define the path for the saved model
         model_path = f"models/{ticker}_{interval}_model.joblib"
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
         train_and_save_model(features, target, model_path)
-        st.success(f"Model for {ticker} ({interval}) trained and saved.")
+        st.success(f"Model for {ticker} ({interval}) trained and saved successfully.")
+
 
 def run_ml_backtest(ticker, interval):
+    """Runs the backtest using the trained ML model."""
     st.header("ML Backtest Results")
     model_path = f"models/{ticker}_{interval}_model.joblib"
+
+    # Load the model
     model = load_model(model_path)
     if model is None:
         st.warning("No trained model found. Please train the model first.")
         return
 
     with st.spinner("Running ML backtest..."):
+        # Fetch the data needed for the backtest
         df = fetch_data_with_indicators(ticker, interval)
         if df.empty:
-            st.warning("No data for backtest.")
+            st.warning("No data found to run the backtest.")
             return
 
+        # Generate signals using the model
         entry, exit = generate_ml_signals(model, df)
+
+        # Run the backtest
         stats, plot = run_vbt_backtest(df, entry, exit)
-        st.write(stats)
+
+        # Display the results
+        st.write("Performance Metrics:")
+        st.write(pd.Series(stats, name="ML Strategy"))
         st.plotly_chart(plot)
+
 
 if __name__ == "__main__":
     main()

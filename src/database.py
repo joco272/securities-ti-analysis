@@ -1,67 +1,78 @@
 import sqlite3
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config.settings import DATABASE_FILE
+
+def get_db_connection():
+    """Returns a connection to the SQLite database."""
+    conn = sqlite3.connect(DATABASE_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def initialize_database():
     """
-    Initializes the SQLite database by creating all necessary tables if they don't already exist.
+    Initializes the database by creating all necessary tables for price data,
+    indicators, and portfolio management if they do not already exist.
     """
-    conn = sqlite3.connect('securities_data.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Create price_data table
+    # --- Price and Indicator Tables ---
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS price_data (
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
         ticker TEXT NOT NULL,
         interval TEXT NOT NULL,
-        timestamp DATETIME NOT NULL,
         open REAL NOT NULL,
         high REAL NOT NULL,
         low REAL NOT NULL,
         close REAL NOT NULL,
         volume INTEGER NOT NULL,
-        UNIQUE(ticker, interval, timestamp)
+        UNIQUE(timestamp, ticker, interval)
     )
     """)
 
-    # Create indicator_data table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS indicator_data (
-        price_id INTEGER,
-        indicator_name TEXT NOT NULL,
-        value TEXT NOT NULL, -- Storing complex indicators (like MACD) as JSON strings
-        FOREIGN KEY (price_id) REFERENCES price_data (id),
-        PRIMARY KEY (price_id, indicator_name)
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        price_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        values_json TEXT NOT NULL,
+        FOREIGN KEY (price_id) REFERENCES price_data (id) ON DELETE CASCADE,
+        UNIQUE(price_id, name)
     )
     """)
 
-    # Create watchlists table
+    # --- Portfolio Management Tables ---
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS watchlists (
-        id INTEGER PRIMARY KEY,
-        name TEXT UNIQUE NOT NULL
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
     )
     """)
 
-    # Create watchlist_items table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS watchlist_items (
-        id INTEGER PRIMARY KEY,
-        watchlist_id INTEGER,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        watchlist_id INTEGER NOT NULL,
         ticker TEXT NOT NULL,
-        FOREIGN KEY (watchlist_id) REFERENCES watchlists (id),
+        FOREIGN KEY (watchlist_id) REFERENCES watchlists (id) ON DELETE CASCADE,
         UNIQUE(watchlist_id, ticker)
     )
     """)
 
-    # Create transactions table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         ticker TEXT NOT NULL,
-        transaction_type TEXT NOT NULL, -- 'BUY' or 'SELL'
+        transaction_date TEXT NOT NULL,
+        transaction_type TEXT NOT NULL CHECK(transaction_type IN ('buy', 'sell')),
         quantity REAL NOT NULL,
-        price REAL NOT NULL,
-        transaction_date DATETIME NOT NULL
+        price_per_share REAL NOT NULL
     )
     """)
 
@@ -70,4 +81,6 @@ def initialize_database():
     print("Database initialized successfully.")
 
 if __name__ == '__main__':
+    # This will ensure all tables are created if the file is run directly.
+    # It's safe to run multiple times.
     initialize_database()
