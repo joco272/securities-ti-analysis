@@ -48,7 +48,8 @@ def main():
     # --- Sidebar for User Input ---
     st.sidebar.header("Analysis Parameters")
     ticker_input = st.sidebar.text_input("Enter a stock ticker (e.g., AAPL):", "AAPL")
-    interval = st.sidebar.selectbox("Select interval:", AVAILABLE_INTERVALS, index=0)
+    # Default to 4h interval as a balanced choice for analysis
+    interval = st.sidebar.selectbox("Select interval:", AVAILABLE_INTERVALS, index=2)
     start_date = st.sidebar.date_input("Start date", pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
