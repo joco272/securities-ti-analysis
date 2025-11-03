@@ -44,10 +44,14 @@ def fetch_from_yfinance(ticker: str, start_date: str, end_date: str, interval: s
     """
     import yfinance as yf
     
-    data = yf.download(ticker, start=start_date, end=end_date, interval=interval, progress=False)
-    if isinstance(data.columns, pd.MultiIndex):
-        data.columns = data.columns.droplevel(1)
-    return data
+    try:
+        data = yf.download(ticker, start=start_date, end=end_date, interval=interval, progress=False)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.droplevel(1)
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching from yfinance for {ticker}: {e}")
+        return pd.DataFrame()
 
 
 def fetch_from_finnhub(ticker: str, start_date: str, end_date: str, interval: str) -> pd.DataFrame:

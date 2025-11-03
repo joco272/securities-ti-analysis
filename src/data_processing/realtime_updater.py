@@ -35,6 +35,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Constants
+UPDATE_WINDOW_SECONDS = 60  # Window for considering an update "now" (1 minute)
+
 
 def is_market_open() -> bool:
     """
@@ -117,10 +120,10 @@ def should_update_now(interval: str) -> bool:
         market_close = datetime.strptime(MARKET_CLOSE_TIME, "%H:%M").time()
         current_time = now.time()
         
-        # Update within 1 minute of market close
+        # Update within UPDATE_WINDOW_SECONDS of market close
         close_dt = datetime.combine(now.date(), market_close).replace(tzinfo=tz)
         time_diff = abs((now - close_dt).total_seconds())
-        return time_diff < 60
+        return time_diff < UPDATE_WINDOW_SECONDS
     
     # Intraday intervals
     next_close = get_next_interval_close(interval_value)
@@ -130,9 +133,9 @@ def should_update_now(interval: str) -> bool:
     tz = pytz.timezone(EXCHANGE_TIMEZONE)
     now = datetime.now(tz)
     
-    # Check if we're within 1 minute of the interval close
+    # Check if we're within UPDATE_WINDOW_SECONDS of the interval close
     time_diff = (next_close - now).total_seconds()
-    return -60 < time_diff < 60
+    return -UPDATE_WINDOW_SECONDS < time_diff < UPDATE_WINDOW_SECONDS
 
 
 def update_ticker_indicators(ticker: str, interval: str):
