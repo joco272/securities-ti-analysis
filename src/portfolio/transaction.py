@@ -19,13 +19,24 @@ def add_transaction(ticker: str, trans_date: date, trans_type: str, quantity: fl
     conn.commit()
     conn.close()
 
-def get_transactions(ticker: str):
-    """Returns a list of all transactions for a specific ticker."""
+def get_transactions(ticker: str = ""):
+    """
+    Returns a list of transactions.
+    If ticker is provided, returns transactions for that ticker only.
+    If ticker is empty string, returns all transactions.
+    """
     conn = get_db_connection()
-    transactions = conn.execute(
-        "SELECT id, transaction_date, transaction_type, quantity, price_per_share FROM transactions WHERE ticker = ? ORDER BY transaction_date DESC",
-        (ticker.upper(),)
-    ).fetchall()
+    
+    if ticker:
+        transactions = conn.execute(
+            "SELECT id, ticker, transaction_date, transaction_type, quantity, price_per_share FROM transactions WHERE ticker = ? ORDER BY transaction_date DESC",
+            (ticker.upper(),)
+        ).fetchall()
+    else:
+        transactions = conn.execute(
+            "SELECT id, ticker, transaction_date, transaction_type, quantity, price_per_share FROM transactions ORDER BY transaction_date DESC"
+        ).fetchall()
+    
     conn.close()
     return transactions
 
