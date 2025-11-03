@@ -67,7 +67,7 @@ Evaluate trading strategies with key performance metrics:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/joco272/securities-ti-analysis.git
+git clone <repository-url>
 cd securities-ti-analysis
 ```
 
@@ -183,7 +183,7 @@ This is a personal project. For questions or suggestions, please open an issue o
 
 ## License
 
-[Add your license information here]
+This project is currently unlicensed. Please contact the repository owner for usage permissions.
 
 ## Acknowledgments
 

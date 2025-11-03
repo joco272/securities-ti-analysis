@@ -1,4 +1,4 @@
-# Product Requirement Document: Securities Analysis and News Aggregator
+# Product Requirement Document: Securities Technical Analysis Application
 
 ## Document Summary
 
@@ -14,7 +14,7 @@ This PRD addresses the following key decisions for the MVP:
 
 ## 1. Introduction
 
-This document outlines the product requirements for a securities analysis and news aggregator application. The application is designed for a user who wants to track and analyze securities, develop and backtest trading strategies, and stay informed about market news.
+This document outlines the product requirements for a securities technical analysis application. The application is designed for a user who wants to track and analyze securities, develop and backtest trading strategies using technical indicators. News aggregation features are planned for future releases (see Section 9: Future Enhancements).
 
 ## 2. Vision and Goals
 
