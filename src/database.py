@@ -76,6 +76,18 @@ def initialize_database():
     )
     """)
 
+    # --- User Profile Table ---
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_profile (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        email TEXT,
+        default_ticker TEXT NOT NULL,
+        default_interval TEXT NOT NULL,
+        risk_tolerance TEXT NOT NULL CHECK(risk_tolerance IN ('Low', 'Medium', 'High'))
+    )
+    """)
+
     conn.commit()
     conn.close()
     print("Database initialized successfully.")
