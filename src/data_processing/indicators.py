@@ -1,11 +1,12 @@
 import pandas as pd
 import talib
-import pandas_ta as ta
 import numpy as np
 
 def calculate_indicators(ohlcv_df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculates technical indicators and appends them to the DataFrame.
+    
+    Initial indicators as per PRD: MACD, MFI, RSI
 
     Args:
         ohlcv_df: A pandas DataFrame with OHLCV data.
@@ -33,28 +34,6 @@ def calculate_indicators(ohlcv_df: pd.DataFrame) -> pd.DataFrame:
 
     # RSI
     df['rsi'] = talib.RSI(close)
-
-    # Stochastic RSI
-    stoch_rsi_k, stoch_rsi_d = talib.STOCHRSI(close)
-    df['stoch_rsi_k'] = stoch_rsi_k
-    df['stoch_rsi_d'] = stoch_rsi_d
-
-    # Accumulation/Distribution Line (A/D)
-    df['ad'] = talib.AD(high, low, close, volume)
-
-    # On-Balance Volume (OBV)
-    df['obv'] = talib.OBV(close, volume)
-
-    # Simple Moving Averages
-    df['sma50'] = talib.SMA(close, timeperiod=50)
-    df['sma200'] = talib.SMA(close, timeperiod=200)
-
-    # --- Pandas TA Indicators ---
-    # The pandas-ta library can directly work with the DataFrame
-    df.ta.ao(append=True)
-    # The column name will be 'AO_5_34', let's rename it for simplicity
-    if 'AO_5_34' in df.columns:
-        df.rename(columns={'AO_5_34': 'ao'}, inplace=True)
 
     return df
 
