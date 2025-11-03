@@ -2,8 +2,8 @@ import yfinance as yf
 import pandas as pd
 import sys
 import os
-# Add parent directory to path to import config
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+# Add project root to path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config.intervals import get_source_interval, get_resample_rule, needs_resampling
 
 def fetch_ohlcv(ticker: str, start_date: str, end_date: str, interval: str) -> pd.DataFrame:

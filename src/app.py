@@ -3,8 +3,8 @@ import pandas as pd
 import sys
 import os
 
-# Add parent directory to path for config imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add project root to path for config imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data_processing.data_retrieval import fetch_ohlcv
 from data_processing.indicators import calculate_indicators
