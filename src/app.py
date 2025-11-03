@@ -49,7 +49,8 @@ def main():
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
     # --- Indicator Selection ---
-    available_indicators = ["MACD", "RSI", "MFI", "Stochastic RSI", "OBV", "A/D", "Awesome Oscillator"]
+    # Initial indicators as per PRD: MACD, MFI, RSI
+    available_indicators = ["MACD", "RSI", "MFI"]
     selected_indicators = st.sidebar.multiselect("Select indicators to display:", available_indicators, default=["MACD", "RSI"])
 
     if st.sidebar.button("Fetch, Store, and Analyze"):

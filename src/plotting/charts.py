@@ -16,14 +16,11 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
 
     # --- 1. Define which indicators will be plotted ---
     # We create a mapping to handle multi-line indicators like MACD
+    # Initial indicators as per PRD: MACD, MFI, RSI
     indicator_map = {
         "MACD": ["macd", "macdsignal"],
         "RSI": ["rsi"],
-        "MFI": ["mfi"],
-        "Stochastic RSI": ["stoch_rsi_k", "stoch_rsi_d"],
-        "OBV": ["obv"],
-        "A/D": ["ad"],
-        "Awesome Oscillator": ["ao"]
+        "MFI": ["mfi"]
     }
 
     indicators_to_plot = [name for name in selected_indicators if name in indicator_map]
@@ -65,15 +62,10 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
     for indicator_name in indicators_to_plot:
         columns = indicator_map[indicator_name]
 
-        # Special case for bar charts like Awesome Oscillator
-        if indicator_name == "Awesome Oscillator":
-            colors = ['green' if val >= 0 else 'red' for val in df['ao']]
-            fig.add_trace(go.Bar(x=df.index, y=df['ao'], name=indicator_name, marker_color=colors), row=current_row, col=1)
-        else:
-            # Plot each column associated with the indicator as a line
-            for col in columns:
-                if col in df.columns:
-                    fig.add_trace(go.Line(x=df.index, y=df[col], name=col), row=current_row, col=1)
+        # Plot each column associated with the indicator as a line
+        for col in columns:
+            if col in df.columns:
+                fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col, mode='lines'), row=current_row, col=1)
 
         current_row += 1
 
@@ -99,7 +91,7 @@ if __name__ == '__main__':
 
     ticker_to_test = "MSFT" # Use a ticker we know has data
     interval_to_test = "1d"
-    indicators_to_test = ["MACD", "RSI", "Awesome Oscillator"]
+    indicators_to_test = ["MACD", "RSI", "MFI"]
 
     print(f"Fetching data for {ticker_to_test} to test charting...")
     test_df = fetch_data_with_indicators(ticker_to_test, interval_to_test)
