@@ -42,19 +42,24 @@ def run_backtest(data: pd.DataFrame):
     stats = bt.run()
     
     # Calculate win/loss ratio from trades
-    trades = stats['_trades']
-    if not trades.empty:
-        winning_trades = len(trades[trades['PnL'] > 0])
-        losing_trades = len(trades[trades['PnL'] < 0])
-        
-        if losing_trades > 0:
-            win_loss_ratio = winning_trades / losing_trades
-        elif winning_trades > 0:
-            win_loss_ratio = float('inf')  # All trades are winners
+    # Check if '_trades' attribute exists to avoid issues with library changes
+    if hasattr(stats, '_trades') and '_trades' in stats:
+        trades = stats['_trades']
+        if not trades.empty:
+            winning_trades = len(trades[trades['PnL'] > 0])
+            losing_trades = len(trades[trades['PnL'] < 0])
+            
+            if losing_trades > 0:
+                win_loss_ratio = winning_trades / losing_trades
+            elif winning_trades > 0:
+                win_loss_ratio = float('inf')  # All trades are winners
+            else:
+                win_loss_ratio = float('nan')  # All trades are breakeven
         else:
-            win_loss_ratio = 0.0  # No winning or losing trades (all breakeven)
+            win_loss_ratio = float('nan')  # No trades executed
     else:
-        win_loss_ratio = 0.0  # No trades executed
+        # Fallback if trades data is not available
+        win_loss_ratio = float('nan')
     
     # Add the win/loss ratio to the stats
     stats['Win/Loss Ratio'] = win_loss_ratio
