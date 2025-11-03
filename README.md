@@ -116,7 +116,12 @@ cd securities-ti-analysis
 pip install -r requirements.txt
 ```
 
-Note: TA-Lib may require additional system-level dependencies. See [TA-Lib installation guide](https://github.com/mrjbq7/ta-lib#installation) for platform-specific instructions.
+**Note for Windows 11**: TA-Lib requires additional system-level dependencies:
+- Download and install Visual C++ build tools from Microsoft
+- For pre-built binaries, visit: https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib
+- Download the appropriate `.whl` file for your Python version (e.g., `TA_Lib‑0.4.XX‑cpXX‑cpXX‑win_amd64.whl`)
+- Install with: `pip install <downloaded_whl_file>`
+- For detailed instructions, see [TA-Lib installation guide](https://github.com/mrjbq7/ta-lib#installation)
 
 3. Initialize the database:
 ```bash
@@ -234,5 +239,5 @@ For questions or suggestions, please open an issue in the GitHub repository.
 ---
 
 **Status**: Active Development  
-**Last Updated**: November 2025  
+**Last Updated**: November 3, 2024  
 **Version**: 0.1.0 MVP
