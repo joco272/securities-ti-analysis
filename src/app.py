@@ -3,6 +3,9 @@ import pandas as pd
 import sys
 import os
 
+# Add parent directory to path for config imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from data_processing.data_retrieval import fetch_ohlcv
 from data_processing.indicators import calculate_indicators
 from data_processing.data_storage import write_indicators_to_db
@@ -13,6 +16,7 @@ from portfolio import watchlist as wl
 from portfolio import transaction as trans
 from portfolio import summary as port
 from plotting.charts import create_multi_pane_chart
+from config.intervals import AVAILABLE_INTERVALS
 
 def main():
     """
@@ -44,7 +48,7 @@ def main():
     # --- Sidebar for User Input ---
     st.sidebar.header("Analysis Parameters")
     ticker_input = st.sidebar.text_input("Enter a stock ticker (e.g., AAPL):", "AAPL")
-    interval = st.sidebar.selectbox("Select interval:", ('15m', '1h', '4h', '1d'), index=3)
+    interval = st.sidebar.selectbox("Select interval:", AVAILABLE_INTERVALS, index=0)
     start_date = st.sidebar.date_input("Start date", pd.to_datetime("2023-01-01"))
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
