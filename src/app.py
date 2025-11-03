@@ -186,6 +186,14 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
 
             # --- 7. Display Backtest Results ---
             st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
+            
+            # Display Win/Loss Ratio
+            win_loss_ratio = results['Win/Loss Ratio']
+            if win_loss_ratio == float('inf'):
+                st.write("Win/Loss Ratio: ∞ (all trades are winners)")
+            else:
+                st.write(f"Win/Loss Ratio: {win_loss_ratio:.2f}")
+            
             st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
 
         except Exception as e:

@@ -24,6 +24,9 @@ def run_backtest(data: pd.DataFrame):
     """
     Runs a backtest on the given data, which must contain OHLCV and 'rsi' columns.
     The column names for OHLCV must be capitalized: 'Open', 'High', 'Low', 'Close', 'Volume'.
+    
+    Returns:
+        stats: Backtest statistics including Sharpe Ratio and Win/Loss Ratio
     """
     # The backtesting library requires capitalized column names for OHLCV.
     data_for_backtest = data.copy()
@@ -37,6 +40,25 @@ def run_backtest(data: pd.DataFrame):
 
     bt = Backtest(data_for_backtest, RsiOscillator, cash=10000, commission=.002)
     stats = bt.run()
+    
+    # Calculate win/loss ratio from trades
+    trades = stats['_trades']
+    if not trades.empty:
+        winning_trades = len(trades[trades['PnL'] > 0])
+        losing_trades = len(trades[trades['PnL'] < 0])
+        
+        if losing_trades > 0:
+            win_loss_ratio = winning_trades / losing_trades
+        elif winning_trades > 0:
+            win_loss_ratio = float('inf')  # All trades are winners
+        else:
+            win_loss_ratio = 0.0  # No winning or losing trades (all breakeven)
+    else:
+        win_loss_ratio = 0.0  # No trades executed
+    
+    # Add the win/loss ratio to the stats
+    stats['Win/Loss Ratio'] = win_loss_ratio
+    
     return stats
 
 if __name__ == '__main__':
