@@ -5,6 +5,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_db_connection
 
+# Default profile values
+DEFAULT_USERNAME = "User"
+DEFAULT_EMAIL = ""
+DEFAULT_TICKER = "AAPL"
+DEFAULT_INTERVAL = "1d"
+DEFAULT_RISK_TOLERANCE = "Medium"
+
 def get_user_profile():
     """
     Returns the user profile. Creates a default profile if none exists.
@@ -14,13 +21,17 @@ def get_user_profile():
     profile = conn.execute("SELECT * FROM user_profile LIMIT 1").fetchone()
     
     if profile is None:
-        # Create default profile
-        conn.execute("""
-            INSERT INTO user_profile (username, email, default_ticker, default_interval, risk_tolerance)
-            VALUES (?, ?, ?, ?, ?)
-        """, ("User", "", "AAPL", "1d", "Medium"))
-        conn.commit()
-        profile = conn.execute("SELECT * FROM user_profile LIMIT 1").fetchone()
+        # Create default profile using INSERT OR IGNORE to handle race conditions
+        try:
+            conn.execute("""
+                INSERT INTO user_profile (username, email, default_ticker, default_interval, risk_tolerance)
+                VALUES (?, ?, ?, ?, ?)
+            """, (DEFAULT_USERNAME, DEFAULT_EMAIL, DEFAULT_TICKER, DEFAULT_INTERVAL, DEFAULT_RISK_TOLERANCE))
+            conn.commit()
+            profile = conn.execute("SELECT * FROM user_profile LIMIT 1").fetchone()
+        except conn.IntegrityError:
+            # Profile was created by another process, fetch it
+            profile = conn.execute("SELECT * FROM user_profile LIMIT 1").fetchone()
     
     conn.close()
     return dict(profile) if profile else None
@@ -28,28 +39,31 @@ def get_user_profile():
 def update_user_profile(username: str, email: str, default_ticker: str, default_interval: str, risk_tolerance: str):
     """
     Updates the user profile with new values.
+    Uses UPSERT logic to handle race conditions.
     """
     conn = get_db_connection()
     
-    # Check if profile exists
-    profile = conn.execute("SELECT id FROM user_profile LIMIT 1").fetchone()
-    
-    if profile:
-        # Update existing profile
-        conn.execute("""
-            UPDATE user_profile 
-            SET username = ?, email = ?, default_ticker = ?, default_interval = ?, risk_tolerance = ?
-            WHERE id = ?
-        """, (username, email, default_ticker.upper(), default_interval, risk_tolerance, profile['id']))
-    else:
-        # Create new profile
-        conn.execute("""
-            INSERT INTO user_profile (username, email, default_ticker, default_interval, risk_tolerance)
-            VALUES (?, ?, ?, ?, ?)
-        """, (username, email, default_ticker.upper(), default_interval, risk_tolerance))
-    
-    conn.commit()
-    conn.close()
+    try:
+        # Check if profile exists
+        profile = conn.execute("SELECT id FROM user_profile LIMIT 1").fetchone()
+        
+        if profile:
+            # Update existing profile
+            conn.execute("""
+                UPDATE user_profile 
+                SET username = ?, email = ?, default_ticker = ?, default_interval = ?, risk_tolerance = ?
+                WHERE id = ?
+            """, (username, email, default_ticker.upper(), default_interval, risk_tolerance, profile['id']))
+        else:
+            # Create new profile
+            conn.execute("""
+                INSERT INTO user_profile (username, email, default_ticker, default_interval, risk_tolerance)
+                VALUES (?, ?, ?, ?, ?)
+            """, (username, email, default_ticker.upper(), default_interval, risk_tolerance))
+        
+        conn.commit()
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     # Test block for user profile functionality
