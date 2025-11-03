@@ -55,5 +55,5 @@ The primary user persona is a technically proficient individual who is actively 
 
 ## 6. Deployment
 
-*   **Initial Deployment:** The application will be deployed on a Windows 11 PC.
-*   **Future Deployment:** The application will be containerized (e.g., using Docker) for easier deployment and scalability.
+*   **Deployment:** The application will be deployed on a Windows 11 PC.
+*   **Note:** This application does not use Docker or containerization. It is designed to run directly on the host system.
