@@ -1,9 +1,22 @@
 import yfinance as yf
 import pandas as pd
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from data_processing.data_sources import fetch_ohlcv_multi_source
+    MULTI_SOURCE_AVAILABLE = True
+except ImportError:
+    MULTI_SOURCE_AVAILABLE = False
 
 def fetch_ohlcv(ticker: str, start_date: str, end_date: str, interval: str) -> pd.DataFrame:
     """
     Fetches OHLCV data for a given ticker and date range.
+    
+    This function supports multiple data sources through the data_sources module.
+    If multi-source is not available, it falls back to yfinance only.
 
     Args:
         ticker: The stock ticker symbol.
@@ -14,7 +27,12 @@ def fetch_ohlcv(ticker: str, start_date: str, end_date: str, interval: str) -> p
     Returns:
         A pandas DataFrame with the OHLCV data.
     """
-    data = yf.download(ticker, start=start_date, end=end_date, interval=interval)
+    # Use multi-source fetching if available
+    if MULTI_SOURCE_AVAILABLE:
+        return fetch_ohlcv_multi_source(ticker, start_date, end_date, interval)
+    
+    # Fallback to yfinance only
+    data = yf.download(ticker, start=start_date, end=end_date, interval=interval, progress=False)
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.droplevel(1)
     return data

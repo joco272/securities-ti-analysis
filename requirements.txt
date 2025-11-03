@@ -8,3 +8,5 @@ backtesting
 streamlit
 pandas-ta
 plotly
+schedule
+pytz
