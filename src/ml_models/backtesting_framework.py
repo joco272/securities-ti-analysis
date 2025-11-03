@@ -42,8 +42,8 @@ def run_backtest(data: pd.DataFrame):
     stats = bt.run()
     
     # Calculate win/loss ratio from trades
-    # Check if '_trades' attribute exists to avoid issues with library changes
-    if hasattr(stats, '_trades') and '_trades' in stats:
+    # Check if '_trades' key exists to avoid issues with library changes
+    if '_trades' in stats:
         trades = stats['_trades']
         if not trades.empty:
             winning_trades = len(trades[trades['PnL'] > 0])

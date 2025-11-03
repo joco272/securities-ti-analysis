@@ -190,7 +190,7 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
             # Display Win/Loss Ratio
             win_loss_ratio = results['Win/Loss Ratio']
             if pd.isna(win_loss_ratio):
-                st.write("Win/Loss Ratio: N/A (no profitable or losing trades)")
+                st.write("Win/Loss Ratio: N/A (no trades or all breakeven trades)")
             elif win_loss_ratio == float('inf'):
                 st.write("Win/Loss Ratio: ∞ (all trades are winners)")
             else:
