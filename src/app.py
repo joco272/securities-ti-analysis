@@ -57,20 +57,34 @@ def main():
 
     # --- Backtesting Parameters ---
     st.sidebar.header("Backtesting Parameters")
-    strategy_indicator = st.sidebar.selectbox("Select a strategy:", ["RSI", "MFI", "Stochastic RSI"])
+    strategy_indicator = st.sidebar.selectbox("Select a strategy:", ["RSI", "MFI", "Stochastic RSI", "MACD"])
 
     # Set default values based on the selected strategy
     if strategy_indicator == "RSI":
         defaults = (30, 70)
-    else: # MFI and Stochastic RSI
+    elif strategy_indicator in ["MFI", "Stochastic RSI"]:
         defaults = (20, 80)
+    else: # MACD
+        defaults = (0, 0) # Not used for MACD
 
-    lower_bound = st.sidebar.slider("Lower Bound", 0, 100, defaults[0])
-    upper_bound = st.sidebar.slider("Upper Bound", 0, 100, defaults[1])
+    if strategy_indicator == "MACD":
+        macd_strategy = st.sidebar.selectbox("MACD Strategy Type:", ["Crossover", "Level"])
+        if macd_strategy == "Level":
+            macd_level = st.sidebar.number_input("MACD Level", value=0.0)
+        lower_bound = upper_bound = macd_level if macd_strategy == "Level" else 0
+    else:
+        lower_bound = st.sidebar.slider("Lower Bound", 0, 100, defaults[0])
+        upper_bound = st.sidebar.slider("Upper Bound", 0, 100, defaults[1])
+        macd_strategy = None
 
-    if st.sidebar.button("Fetch, Store, and Analyze"):
-        # This block remains for the analysis part of the app
-        run_analysis(ticker_input, interval, start_date, end_date, selected_indicators, strategy_indicator, lower_bound, upper_bound)
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("Fetch, Store, and Analyze"):
+            # This block remains for the analysis part of the app
+            run_analysis(ticker_input, interval, start_date, end_date, selected_indicators, strategy_indicator, lower_bound, upper_bound)
+    with col2:
+        if st.button("Perform Backtest"):
+            perform_backtest(ticker_input, interval, strategy_indicator, lower_bound, upper_bound, macd_strategy)
 
     # --- Portfolio Management Section ---
     st.sidebar.markdown("---")
@@ -191,27 +205,38 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators, st
         st.subheader("Latest Data and Indicators")
         st.dataframe(display_df.tail())
 
-        # --- 6. Run Backtest ---
-        st.subheader("Backtesting Results")
-
-        # Map strategy name to indicator column
-        indicator_map = {
-            "RSI": "rsi",
-            "MFI": "mfi",
-            "Stochastic RSI": "stoch_rsi_k" # Using the %K line
-        }
-        indicator_to_backtest = indicator_map[strategy_indicator]
-
-        results = run_backtest(display_df.dropna(), indicator_to_backtest, lower_bound, upper_bound)
-
-        # --- 7. Display Backtest Results ---
-        st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
-        st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
-
         st.success("Analysis complete!")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
+def perform_backtest(ticker, interval, strategy_indicator, lower_bound, upper_bound, macd_strategy):
+    try:
+        with st.spinner("Performing backtest..."):
+            display_df = fetch_data_with_indicators(ticker, interval)
+            if display_df.empty:
+                st.warning("No data found for backtesting. Please run the analysis first.")
+                return
+
+            st.subheader("Backtesting Results")
+
+            # Map strategy name to indicator column
+            indicator_map = {
+                "RSI": "rsi",
+                "MFI": "mfi",
+                "Stochastic RSI": "stoch_rsi_k" # Using the %K line
+            }
+            indicator_to_backtest = indicator_map.get(strategy_indicator)
+
+            results = run_backtest(display_df.dropna(), indicator_to_backtest, lower_bound, upper_bound, macd_strategy)
+
+            st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
+            st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
+
+            st.success("Backtest complete!")
+
+    except Exception as e:
+        st.error(f"An error occurred during backtesting: {e}")
 
 if __name__ == "__main__":
     main()

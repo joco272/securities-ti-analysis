@@ -17,7 +17,7 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
     # --- 1. Define which indicators will be plotted ---
     # We create a mapping to handle multi-line indicators like MACD
     indicator_map = {
-        "MACD": ["macd", "macdsignal"],
+        "MACD": ["macd", "macdsignal", "macdhist"],
         "RSI": ["rsi"],
         "MFI": ["mfi"],
         "Stochastic RSI": ["stoch_rsi_k", "stoch_rsi_d"],
@@ -66,8 +66,15 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
     for indicator_name in indicators_to_plot:
         columns = indicator_map[indicator_name]
 
-        # Special case for bar charts like Awesome Oscillator
-        if indicator_name == "Awesome Oscillator":
+        # Special case for bar charts like MACD histogram and Awesome Oscillator
+        if indicator_name == "MACD":
+            # Plot MACD and signal as lines
+            fig.add_trace(go.Scatter(x=df.index, y=df['macd'], name='macd', mode='lines'), row=current_row, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=df['macdsignal'], name='macdsignal', mode='lines'), row=current_row, col=1)
+            # Plot histogram as a bar chart
+            colors = ['green' if val >= 0 else 'red' for val in df['macdhist']]
+            fig.add_trace(go.Bar(x=df.index, y=df['macdhist'], name='macdhist', marker_color=colors), row=current_row, col=1)
+        elif indicator_name == "Awesome Oscillator":
             colors = ['green' if val >= 0 else 'red' for val in df['ao']]
             fig.add_trace(go.Bar(x=df.index, y=df['ao'], name=indicator_name, marker_color=colors), row=current_row, col=1)
         else:

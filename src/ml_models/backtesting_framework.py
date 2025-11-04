@@ -1,7 +1,7 @@
 import vectorbt as vbt
 import pandas as pd
 
-def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bound: int):
+def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bound: int, macd_strategy: str = None):
     """
     Runs a backtest using vectorbt based on a selected indicator and bounds.
 
@@ -10,6 +10,7 @@ def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bou
         indicator: The name of the indicator column to use (e.g., 'rsi', 'mfi').
         lower_bound: The lower bound for the buy signal.
         upper_bound: The upper bound for the sell signal.
+        macd_strategy: The MACD strategy to use, if applicable.
 
     Returns:
         A dictionary with key backtesting stats.
@@ -18,8 +19,16 @@ def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bou
         raise ValueError(f"Dataframe must contain an '{indicator}' column for backtesting.")
 
     # --- 1. Define Entry and Exit Signals ---
-    entries = data[indicator] < lower_bound
-    exits = data[indicator] > upper_bound
+    if indicator == "MACD":
+        if macd_strategy == "Crossover":
+            entries = data['macd'] > data['macdsignal']
+            exits = data['macd'] < data['macdsignal']
+        elif macd_strategy == "Level":
+            entries = data['macd'] > lower_bound
+            exits = data['macd'] < lower_bound
+    else:
+        entries = data[indicator] < lower_bound
+        exits = data[indicator] > upper_bound
 
     # --- 2. Run the Portfolio Simulation ---
     portfolio = vbt.Portfolio.from_signals(
