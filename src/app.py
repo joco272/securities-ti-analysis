@@ -55,9 +55,22 @@ def main():
     available_indicators = ["MACD", "RSI", "MFI", "Stochastic RSI", "OBV", "A/D", "Awesome Oscillator"]
     selected_indicators = st.sidebar.multiselect("Select indicators to display:", available_indicators, default=["MACD", "RSI"])
 
+    # --- Backtesting Parameters ---
+    st.sidebar.header("Backtesting Parameters")
+    strategy_indicator = st.sidebar.selectbox("Select a strategy:", ["RSI", "MFI", "Stochastic RSI"])
+
+    # Set default values based on the selected strategy
+    if strategy_indicator == "RSI":
+        defaults = (30, 70)
+    else: # MFI and Stochastic RSI
+        defaults = (20, 80)
+
+    lower_bound = st.sidebar.slider("Lower Bound", 0, 100, defaults[0])
+    upper_bound = st.sidebar.slider("Upper Bound", 0, 100, defaults[1])
+
     if st.sidebar.button("Fetch, Store, and Analyze"):
         # This block remains for the analysis part of the app
-        run_analysis(ticker_input, interval, start_date, end_date, selected_indicators)
+        run_analysis(ticker_input, interval, start_date, end_date, selected_indicators, strategy_indicator, lower_bound, upper_bound)
 
     # --- Portfolio Management Section ---
     st.sidebar.markdown("---")
@@ -146,7 +159,7 @@ def main():
         st.dataframe(trans_df)
 
 
-def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
+def run_analysis(ticker, interval, start_date, end_date, selected_indicators, strategy_indicator, lower_bound, upper_bound):
     try:
         with st.spinner("Processing..."):
             # --- 1. Fetch fresh data from yfinance ---
@@ -180,7 +193,16 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
 
         # --- 6. Run Backtest ---
         st.subheader("Backtesting Results")
-        results = run_backtest(display_df.dropna())
+
+        # Map strategy name to indicator column
+        indicator_map = {
+            "RSI": "rsi",
+            "MFI": "mfi",
+            "Stochastic RSI": "stoch_rsi_k" # Using the %K line
+        }
+        indicator_to_backtest = indicator_map[strategy_indicator]
+
+        results = run_backtest(display_df.dropna(), indicator_to_backtest, lower_bound, upper_bound)
 
         # --- 7. Display Backtest Results ---
         st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
