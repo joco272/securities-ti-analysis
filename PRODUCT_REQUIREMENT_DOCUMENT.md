@@ -22,8 +22,8 @@ The primary user persona is a technically proficient individual who is actively 
     *   As a user, I want the application to automatically update the technical indicators at the close of each time interval.
 *   **Initial Scope:**
     *   **Indicators:** MACD, MFI, RSI
-    *   **Intervals:** 15-minute, 1-hour, 4-hour, 1-day
-*   **Note on Intervals:** The '45m' interval is not supported by the `yfinance` library. A potential workaround is to resample 15-minute data to 45-minute intervals. This will be considered for a future release.
+    *   **Intervals:** 15-minute, 45-minute, 4-hour
+*   **Note on Intervals:** The `yfinance` library directly supports 15-minute data. However, 45-minute and 4-hour intervals are not natively supported and will be implemented by fetching higher-resolution data (15-minute for 45-minute intervals, 1-hour for 4-hour intervals) and resampling it to the desired timeframes.
 *   **Technical Details:**
     *   The application will use the TA-Lib library for indicator calculations.
     *   Indicator data will be stored in a local SQLite database file (`securities_data.db`).
@@ -39,10 +39,19 @@ The primary user persona is a technically proficient individual who is actively 
 *   **Technical Details:**
     *   The application will use the `scikit-learn` and `backtesting.py` libraries for backtesting.
 
-### 4.3. Customization (Future Scope)
+### 4.3. Customization
 
 *   **Description:** Users will be able to add new technical indicators and time intervals to the application.
-*   **Initial Implementation:** In the MVP, new indicators and intervals will be added by a developer editing a configuration file. A user-facing UI for this feature is planned for a future release.
+*   **Initial Implementation:** In the MVP, new indicators and intervals are configured in the `config/intervals.py` file. Developers can add new intervals by modifying the `INTERVAL_CONFIG` dictionary, specifying the source interval to fetch from yfinance and the resampling rule if needed.
+*   **Example Configuration:**
+    ```python
+    '45m': {
+        'source_interval': '15m',  # Fetch 15-minute data
+        'resample_rule': '45min',  # Resample to 45-minute intervals
+        'description': '45-minute intervals (resampled from 15m)'
+    }
+    ```
+*   **Future Enhancement:** A user-facing UI for adding and configuring intervals and indicators is planned for a future release, allowing non-technical users to customize the application without editing configuration files.
 
 ## 5. Technology Stack
 
