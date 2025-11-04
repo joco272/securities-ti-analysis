@@ -1,28 +1,39 @@
-def print_instructions():
+import subprocess
+import sys
+
+def run_command(command, wait=True):
     """
-    Prints the instructions for running the application locally.
+    Runs a command in the shell and prints it to the console.
+    If the command fails, it prints an error message and exits the script.
     """
-    instructions = """
-    To run the Securities Analysis and Backtesting App locally, please follow these steps:
+    print(f"Executing command: {command}")
+    try:
+        if wait:
+            subprocess.run(command, check=True, shell=True)
+        else:
+            subprocess.Popen(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing command: {command}")
+        print(e)
+        sys.exit(1)
 
-    1. Install Dependencies:
-       Open a terminal in the project's root directory and run the following command to install all the necessary Python packages:
-
-       pip install -r requirements.txt
-
-    2. Initialize the Database:
-       After the installation is complete, run this command to create and set up the local SQLite database file:
-
-       python src/database.py
-
-    3. Run the Application:
-       Finally, start the Streamlit application with this command:
-
-       streamlit run src/app.py
-
-    After running the last command, the application should open automatically in your default web browser.
+def main():
     """
-    print(instructions)
+    Installs dependencies, initializes the database, and runs the application.
+    """
+    print("--- Setting up and running the Securities Analysis and Backtesting App ---")
+
+    # 1. Install Dependencies
+    run_command("pip install -r requirements.txt")
+
+    # 2. Initialize the Database
+    run_command("python src/database.py")
+
+    # 3. Run the Application
+    print("Starting the Streamlit application...")
+    run_command("streamlit run src/app.py", wait=False)
+
+    print("--- Application has been started ---")
 
 if __name__ == "__main__":
-    print_instructions()
+    main()
