@@ -89,26 +89,3 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
 
     return fig
 
-if __name__ == '__main__':
-    import sys
-    import os
-    # This block is for testing the charting function locally
-    # We will use the data query module to get some real data
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from data_processing.data_query import fetch_data_with_indicators
-
-    ticker_to_test = "MSFT" # Use a ticker we know has data
-    interval_to_test = "1d"
-    indicators_to_test = ["MACD", "RSI", "Awesome Oscillator"]
-
-    print(f"Fetching data for {ticker_to_test} to test charting...")
-    test_df = fetch_data_with_indicators(ticker_to_test, interval_to_test)
-
-    if not test_df.empty:
-        print("Data fetched. Creating chart...")
-        fig = create_multi_pane_chart(test_df, indicators_to_test)
-        # This will open the chart in your default web browser
-        fig.show()
-        print("Chart displayed.")
-    else:
-        print(f"Could not fetch data for {ticker_to_test}. You may need to run the main app first to populate the database.")

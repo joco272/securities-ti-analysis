@@ -3,6 +3,9 @@ import pandas as pd
 import sys
 import os
 
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from data_processing.data_retrieval import fetch_ohlcv
 from data_processing.indicators import calculate_indicators
 from data_processing.data_storage import write_indicators_to_db

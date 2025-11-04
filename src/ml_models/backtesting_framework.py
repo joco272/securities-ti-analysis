@@ -1,49 +1,46 @@
-from backtesting import Backtest, Strategy
-from backtesting.lib import crossover
+import vectorbt as vbt
 import pandas as pd
-
-class RsiOscillator(Strategy):
-    """
-    A simple RSI-based trading strategy.
-    It buys when RSI crosses below the lower bound and sells when it crosses above the upper bound.
-    """
-    upper_bound = 70
-    lower_bound = 30
-
-    def init(self):
-        # The backtesting library automatically uses the column named 'rsi' from the data feed.
-        pass
-
-    def next(self):
-        if crossover(self.data.rsi, self.upper_bound):
-            self.position.close()
-        elif crossover(self.lower_bound, self.data.rsi):
-            self.buy()
 
 def run_backtest(data: pd.DataFrame):
     """
-    Runs a backtest on the given data, which must contain OHLCV and 'rsi' columns.
-    The column names for OHLCV must be capitalized: 'Open', 'High', 'Low', 'Close', 'Volume'.
-    """
-    # The backtesting library requires capitalized column names for OHLCV.
-    data_for_backtest = data.copy()
-    data_for_backtest.rename(columns={
-        'open': 'Open',
-        'high': 'High',
-        'low': 'Low',
-        'close': 'Close',
-        'volume': 'Volume'
-    }, inplace=True)
+    Runs an RSI-based backtest using vectorbt.
 
-    bt = Backtest(data_for_backtest, RsiOscillator, cash=10000, commission=.002)
-    stats = bt.run()
-    return stats
+    Args:
+        data: DataFrame with OHLCV data and an 'rsi' column.
+
+    Returns:
+        A dictionary with key backtesting stats.
+    """
+    if 'rsi' not in data.columns:
+        raise ValueError("Dataframe must contain an 'rsi' column for backtesting.")
+
+    # --- 1. Define Entry and Exit Signals ---
+    # We use a simple RSI strategy: buy when RSI crosses below 30, sell when it crosses above 70.
+    entries = data['rsi'] < 30
+    exits = data['rsi'] > 70
+
+    # --- 2. Run the Portfolio Simulation ---
+    # `vbt.Portfolio.from_signals` is a powerful tool that simulates a portfolio based on entry/exit signals.
+    portfolio = vbt.Portfolio.from_signals(
+        close=data['close'],
+        entries=entries,
+        exits=exits,
+        init_cash=10000,
+        fees=0.002, # 0.2% commission
+        freq='D' # Assume daily frequency for now
+    )
+
+    # --- 3. Extract and Return Key Statistics ---
+    stats = portfolio.stats()
+
+    # We return a simple dictionary to keep the interface consistent with the rest of the app
+    return {
+        "Sharpe Ratio": stats['Sharpe Ratio'],
+        "Win Rate [%]": stats['Win Rate [%]']
+    }
 
 if __name__ == '__main__':
-    # This block is for demonstrating the backtesting framework.
-    # In the main app, the data is fetched and reconstructed from the database.
-
-    # This is a placeholder for a direct data fetch for testing purposes.
-    # A real test would pull from a saved file or a small, self-contained dataset.
+    # This module is meant to be imported, but we can provide a simple test case.
+    # To run, you'd need a data source with 'close' and 'rsi' columns.
     print("This module is intended to be used by the main application.")
-    print("To test, run the main app and trigger the analysis.")
+    print("To test, run the main app and trigger an analysis which will then call this backtesting framework.")
