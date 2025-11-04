@@ -165,26 +165,26 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
             display_df = fetch_data_with_indicators(ticker, interval)
 
         if display_df.empty:
-                st.warning("No data found in the database for the selected parameters.")
-                return
+            st.warning("No data found in the database for the selected parameters.")
+            return
 
-            # --- 5. Display Data and Indicators ---
-            st.subheader(f"Displaying Data for {ticker} ({interval})")
+        # --- 5. Display Data and Indicators ---
+        st.subheader(f"Displaying Data for {ticker} ({interval})")
 
-            # Create and display the advanced multi-pane chart
-            fig = create_multi_pane_chart(display_df, selected_indicators)
-            st.plotly_chart(fig, use_container_width=True)
+        # Create and display the advanced multi-pane chart
+        fig = create_multi_pane_chart(display_df, selected_indicators)
+        st.plotly_chart(fig, use_container_width=True)
 
-            st.subheader("Latest Data and Indicators")
-            st.dataframe(display_df.tail())
+        st.subheader("Latest Data and Indicators")
+        st.dataframe(display_df.tail())
 
-            # --- 6. Run Backtest ---
-            st.subheader("Backtesting Results")
-            results = run_backtest(display_df.dropna())
+        # --- 6. Run Backtest ---
+        st.subheader("Backtesting Results")
+        results = run_backtest(display_df.dropna())
 
-            # --- 7. Display Backtest Results ---
-            st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
-            st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
+        # --- 7. Display Backtest Results ---
+        st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
+        st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
 
         st.success("Analysis complete!")
 
