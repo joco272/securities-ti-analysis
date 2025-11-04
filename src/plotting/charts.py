@@ -73,7 +73,7 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
             # Plot each column associated with the indicator as a line
             for col in columns:
                 if col in df.columns:
-                    fig.add_trace(go.Line(x=df.index, y=df[col], name=col), row=current_row, col=1)
+                    fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col, mode='lines'), row=current_row, col=1)
 
         current_row += 1
 
