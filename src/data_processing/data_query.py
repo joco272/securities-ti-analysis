@@ -79,15 +79,11 @@ def fetch_data_with_indicators(ticker: str, interval: str) -> pd.DataFrame:
     final_df.index = pd.to_datetime(final_df.index)
 
     # Rename columns to match what the rest of the app expects (e.g., 'macd_macd' to 'macd')
+    # Initial indicators as per PRD: MACD, MFI, RSI
     final_df.rename(columns={
         'macd_macd': 'macd',
         'macd_signal': 'macdsignal',
-        'macd_hist': 'macdhist',
-        'stoch_rsi_k': 'stoch_rsi_k',
-        'stoch_rsi_d': 'stoch_rsi_d',
-        'sma_sma50': 'sma50',
-        'sma_sma200': 'sma200',
-        'ao': 'ao' # This was missing
+        'macd_hist': 'macdhist'
     }, inplace=True)
 
     # Ensure OHLCV columns are of the correct type
