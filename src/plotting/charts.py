@@ -38,7 +38,8 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.02,
-        row_heights=row_heights
+        row_heights=row_heights,
+        specs=[[{"secondary_y": True}]] + [[{"secondary_y": False}]] * num_indicators
     )
 
     # --- 3. Add Price Candlestick and Volume ---
@@ -58,7 +59,7 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list):
         y=df['volume'],
         name='Volume',
         marker_color='rgba(0,0,100,0.3)'
-    ), row=1, col=1)
+    ), row=1, col=1, secondary_y=True)
 
     # --- 4. Dynamically add indicator subplots ---
     current_row = 2
