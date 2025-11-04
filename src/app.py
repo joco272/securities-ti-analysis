@@ -147,29 +147,24 @@ def main():
 
 
 def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
-    with st.spinner("Processing..."):
-        try:
+    try:
+        with st.spinner("Processing..."):
             # --- 1. Fetch fresh data from yfinance ---
-            st.write(f"Fetching fresh data for {ticker}...")
             ohlcv_data = fetch_ohlcv(ticker, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), interval)
             if ohlcv_data.empty:
                 st.warning(f"No new data found for {ticker}.")
                 return
 
             # --- 2. Calculate Indicators ---
-            st.write("Calculating technical indicators...")
             data_with_indicators = calculate_indicators(ohlcv_data)
 
             # --- 3. Store Price and Indicators in DB ---
-            st.write("Storing data in the database...")
             write_indicators_to_db(ticker, interval, data_with_indicators)
-            st.success(f"Successfully processed and stored data for {len(data_with_indicators)} records.")
 
             # --- 4. Query and Reconstruct Data from DB ---
-            st.write("Querying data from the database for display...")
             display_df = fetch_data_with_indicators(ticker, interval)
 
-            if display_df.empty:
+        if display_df.empty:
                 st.warning("No data found in the database for the selected parameters.")
                 return
 
@@ -191,8 +186,10 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
             st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
             st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
 
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+        st.success("Analysis complete!")
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
