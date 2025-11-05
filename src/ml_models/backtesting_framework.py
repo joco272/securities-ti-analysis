@@ -43,9 +43,10 @@ def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bou
     # --- 3. Extract and Return Key Statistics ---
     stats = portfolio.stats()
 
+    # The stats object is a pandas Series. Extract the values and return a dictionary.
     return {
-        "Sharpe Ratio": stats['Sharpe Ratio'],
-        "Win Rate [%]": stats['Win Rate [%]']
+        "Sharpe Ratio": float(stats.get('Sharpe Ratio', 0.0)),
+        "Win Rate [%]": float(stats.get('Win Rate [%]', 0.0))
     }
 
 if __name__ == '__main__':
