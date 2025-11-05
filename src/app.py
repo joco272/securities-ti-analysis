@@ -48,7 +48,7 @@ def main():
     st.sidebar.header("Analysis Parameters")
     ticker_input = st.sidebar.text_input("Enter a stock ticker (e.g., AAPL):", "AAPL")
     interval = st.sidebar.selectbox("Select interval:", ('15m', '1h', '4h', '1d'), index=3)
-    start_date = st.sidebar.date_input("Start date", pd.to_datetime("2023-01-01"))
+    start_date = st.sidebar.date_input("Start date", pd.to_datetime("2020-01-01"))
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
     # --- Indicator Selection ---
@@ -98,8 +98,13 @@ def main():
 
     if 'results' in st.session_state:
         st.subheader("Backtesting Results")
-        st.write(f"Sharpe Ratio: {st.session_state.results['Sharpe Ratio']:.2f}")
-        st.write(f"Win Rate [%]: {st.session_state.results['Win Rate [%]']:.2f}")
+        # Check if any trades were executed before displaying stats
+        if st.session_state.results['Total Trades'] > 0:
+            st.write(f"Total Trades: {st.session_state.results['Total Trades']}")
+            st.write(f"Sharpe Ratio: {st.session_state.results['Sharpe Ratio']:.2f}")
+            st.write(f"Win Rate [%]: {st.session_state.results['Win Rate [%]']:.2f}")
+        else:
+            st.info("No trades were executed for the selected parameters.")
 
     # --- Portfolio Management Section ---
     st.sidebar.markdown("---")
@@ -233,7 +238,7 @@ def perform_backtest(ticker, interval, strategy_indicator, lower_bound, upper_bo
             indicator_map = {
                 "RSI": "rsi",
                 "MFI": "mfi",
-                "Stochastic RSI": "stoch_rsi_k", # Using the %K line
+                "Stochastic RSI": "stoch_rsi.k", # Using the %K line
                 "MACD": "MACD" # Special case for MACD
             }
             indicator_to_backtest = indicator_map.get(strategy_indicator)

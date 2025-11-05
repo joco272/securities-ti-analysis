@@ -86,7 +86,7 @@ def fetch_data_with_indicators(ticker: str, interval: str) -> pd.DataFrame:
         'sma_sma50': 'sma50',
         'sma_sma200': 'sma200',
         'ao': 'ao'
-    }, inplace=True)
+    }, inplace=True, errors='ignore')
 
     # Ensure OHLCV columns are of the correct type
     for col in ['open', 'high', 'low', 'close', 'volume']:

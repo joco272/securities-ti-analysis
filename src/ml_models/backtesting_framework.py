@@ -1,5 +1,6 @@
 import vectorbt as vbt
 import pandas as pd
+import numpy as np
 
 def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bound: int, macd_strategy: str = None):
     """
@@ -42,11 +43,23 @@ def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bou
 
     # --- 3. Extract and Return Key Statistics ---
     stats = portfolio.stats()
+    total_trades = int(stats.get('Total Trades', 0))
 
-    # The stats object is a pandas Series. Extract the values and return a dictionary.
+    # Handle cases with no trades, which can result in NaN or inf values
+    if total_trades == 0:
+        sharpe_ratio = 0.0
+        win_rate = 0.0
+    else:
+        sharpe_ratio = stats.get('Sharpe Ratio', 0.0)
+        win_rate = stats.get('Win Rate [%]', 0.0)
+        # Replace inf with 0, as it typically happens with zero std dev in returns (no losing trades)
+        if np.isinf(sharpe_ratio):
+            sharpe_ratio = 0.0
+
     return {
-        "Sharpe Ratio": float(stats.get('Sharpe Ratio', 0.0)),
-        "Win Rate [%]": float(stats.get('Win Rate [%]', 0.0))
+        "Total Trades": total_trades,
+        "Sharpe Ratio": float(sharpe_ratio),
+        "Win Rate [%]": float(win_rate)
     }
 
 if __name__ == '__main__':
