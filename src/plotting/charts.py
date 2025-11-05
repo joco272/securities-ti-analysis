@@ -118,7 +118,7 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list, chart_c
     # Vertical line across all panes
     fig.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor', spikethickness=1, spikedash='dot')
     # Horizontal line on the hovered pane only
-    fig.update_yaxes(showspikes=True, spikemode='closest', spikethickness=1, spikedash='dot')
+    fig.update_yaxes(showspikes=True, spikethickness=1, spikedash='dot')
     # Set hovermode to 'closest' to enable per-pane interactions
     fig.update_layout(hovermode='closest')
 
