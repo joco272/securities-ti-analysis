@@ -1,0 +1,2 @@
+chart_colors type: <class 'dict'>
+chart_colors content: {'background': '#ffffff', 'bullish_candle': '#26a69a', 'bearish_candle': '#ef5350', 'macd_line': '#009688', 'macdsignal_line': '#ff5722', 'macdhist': '#607d8b'}
