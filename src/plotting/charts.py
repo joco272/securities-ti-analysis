@@ -33,7 +33,8 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     indicators_to_plot = [name for name in selected_indicators if name in indicator_map]
     num_indicators = len(indicators_to_plot)
 
-    # --- 2. Create the Subplot Figure ---
+    # --- 2. Create the Subplot Figure using subplot_titles for labels ---
+    subplot_titles = [ticker.upper()] + indicators_to_plot
     row_heights = [0.7] + [0.3] * num_indicators
     fig = make_subplots(
         rows=num_indicators + 1,
@@ -41,7 +42,8 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         shared_xaxes=True,
         vertical_spacing=0.03,
         row_heights=row_heights,
-        specs=[[{"secondary_y": True}]] + [[{"secondary_y": False}]] * num_indicators
+        specs=[[{"secondary_y": True}]] + [[{"secondary_y": False}]] * num_indicators,
+        subplot_titles=subplot_titles
     )
 
     # --- 3. Add Price Candlestick and Volume ---
@@ -64,16 +66,6 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     ), row=1, col=1, secondary_y=True)
     fig.update_yaxes(showticklabels=False, secondary_y=True) # Hide volume labels
 
-    # Add ticker label to the main price pane
-    fig.add_annotation(
-        text=ticker.upper(),
-        xref="paper", yref="y1 domain",
-        x=0.01, y=0.95,
-        showarrow=False,
-        font=dict(size=14, color="gray"),
-        align="left"
-    )
-
     # --- 4. Dynamically Add Indicator Subplots in Selected Order ---
     for i, indicator_name in enumerate(indicators_to_plot):
         current_row = i + 2
@@ -95,16 +87,6 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
                     fig.add_trace(go.Bar(x=df.index, y=df[col_name], name=col_name, marker_color=colors), row=current_row, col=1)
                 else: # Default to line
                     fig.add_trace(go.Scatter(x=df.index, y=df[col_name], name=col_name, mode='lines', line=dict(color=color)), row=current_row, col=1)
-
-        # Add a title annotation to each indicator pane
-        fig.add_annotation(
-            text=indicator_name,
-            xref="paper", yref=f"y{current_row} domain",
-            x=0.01, y=0.95,
-            showarrow=False,
-            font=dict(size=12, color="gray"),
-            align="left"
-        )
 
 
     # --- 5. Finalize Layout with Custom Colors and Crosshairs ---
