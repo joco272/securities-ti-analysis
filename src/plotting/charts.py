@@ -67,7 +67,7 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     # Add ticker label to the main price pane
     fig.add_annotation(
         text=ticker.upper(),
-        xref="paper", yref="y domain",
+        xref="paper", yref="y1 domain",
         x=0.01, y=0.95,
         showarrow=False,
         font=dict(size=14, color="gray"),
