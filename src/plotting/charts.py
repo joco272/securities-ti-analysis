@@ -2,12 +2,13 @@ import pandas as pd
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list, chart_colors: dict):
+def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: list, chart_colors: dict):
     """
     Creates a customizable, multi-pane Plotly chart with candlesticks, volume, and selected indicators.
 
     Args:
         df: DataFrame containing OHLCV and all calculated indicator data.
+        ticker: The stock ticker symbol (e.g., 'AAPL').
         selected_indicators: An ordered list of indicator names to display.
         chart_colors: A dictionary containing color settings for chart elements.
 
@@ -62,6 +63,16 @@ def create_multi_pane_chart(df: pd.DataFrame, selected_indicators: list, chart_c
         marker_color='rgba(128,128,128,0.3)'
     ), row=1, col=1, secondary_y=True)
     fig.update_yaxes(showticklabels=False, secondary_y=True) # Hide volume labels
+
+    # Add ticker label to the main price pane
+    fig.add_annotation(
+        text=ticker.upper(),
+        xref="paper", yref="y domain",
+        x=0.01, y=0.95,
+        showarrow=False,
+        font=dict(size=14, color="gray"),
+        align="left"
+    )
 
     # --- 4. Dynamically Add Indicator Subplots in Selected Order ---
     for i, indicator_name in enumerate(indicators_to_plot):

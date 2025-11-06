@@ -18,7 +18,16 @@ if __name__ == '__main__':
 
     if not test_df.empty:
         print("Data fetched. Creating chart...")
-        fig = create_multi_pane_chart(test_df, indicators_to_test)
+        # Define default colors for testing purposes
+        default_chart_colors = {
+            'background': '#ffffff',
+            'bullish_candle': '#26a69a',
+            'bearish_candle': '#ef5350',
+            'macd_line': '#009688',
+            'macdsignal_line': '#ff5722',
+            'macdhist': '#607d8b'
+        }
+        fig = create_multi_pane_chart(test_df, ticker_to_test, indicators_to_test, default_chart_colors)
         # This will open the chart in your default web browser
         fig.show()
         print("Chart displayed.")

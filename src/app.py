@@ -248,7 +248,7 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators, ch
             return None, None
 
         # --- 5. Create Chart ---
-        fig = create_multi_pane_chart(display_df, selected_indicators, chart_colors)
+        fig = create_multi_pane_chart(display_df, ticker, selected_indicators, chart_colors)
 
         st.success("Analysis complete!")
 
