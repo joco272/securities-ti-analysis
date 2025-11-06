@@ -112,7 +112,19 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     fig.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor', spikethickness=1, spikedash='dot')
     # Horizontal line on the hovered pane only
     fig.update_yaxes(showspikes=True, spikethickness=1, spikedash='dot')
-    # Set hovermode to 'closest' to enable per-pane interactions
-    fig.update_layout(hovermode='closest')
+    # Set hovermode to 'x unified' to sync crosshairs and tooltips across all subplots
+    fig.update_layout(
+        hovermode='x unified',
+        hoverlabel=dict(
+            bgcolor="rgba(200, 200, 200, 0.2)",
+            font_size=12,
+            font_family="Arial"
+        )
+    )
+
+    # Adjust subplot title positions to be on the top left
+    for annotation in fig['layout']['annotations']:
+        annotation['x'] = 0
+        annotation['xanchor'] = 'left'
 
     return fig
