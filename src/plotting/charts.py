@@ -5,15 +5,7 @@ import plotly.graph_objects as go
 def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: list, chart_colors: dict):
     """
     Creates a customizable, multi-pane Plotly chart with candlesticks, volume, and selected indicators.
-
-    Args:
-        df: DataFrame containing OHLCV and all calculated indicator data.
-        ticker: The stock ticker symbol (e.g., 'AAPL').
-        selected_indicators: An ordered list of indicator names to display.
-        chart_colors: A dictionary containing color settings for chart elements.
-
-    Returns:
-        A Plotly Figure object.
+    This is a simplified version with problematic UI features reverted.
     """
     # --- 1. Define Indicator Plotting Logic ---
     indicator_map = {
@@ -33,7 +25,7 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     indicators_to_plot = [name for name in selected_indicators if name in indicator_map]
     num_indicators = len(indicators_to_plot)
 
-    # --- 2. Create the Subplot Figure using subplot_titles for labels ---
+    # --- 2. Create the Subplot Figure ---
     subplot_titles = [ticker.upper()] + indicators_to_plot
     row_heights = [0.7] + [0.3] * num_indicators
     fig = make_subplots(
@@ -64,62 +56,32 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         name='Volume',
         marker_color='rgba(128,128,128,0.3)'
     ), row=1, col=1, secondary_y=True)
-    fig.update_yaxes(showticklabels=False, secondary_y=True) # Hide volume labels
+    fig.update_yaxes(showticklabels=False, secondary_y=True)
 
-    # --- 4. Dynamically Add Indicator Subplots in Selected Order ---
+    # --- 4. Dynamically Add Indicator Subplots ---
     for i, indicator_name in enumerate(indicators_to_plot):
         current_row = i + 2
         plots = indicator_map[indicator_name]
-
         for plot_info in plots:
             col_name = plot_info["col"]
             if col_name in df.columns:
                 plot_type = plot_info["type"]
                 color_key = plot_info.get("color_key")
                 color = chart_colors.get(color_key) if color_key else None
-
                 if plot_type == "bar":
-                    # Special coloring for histogram-style bars
-                    if indicator_name in ["MACD", "Awesome Oscillator"]:
-                        colors = [color if val >= 0 else chart_colors.get('bearish_candle', 'red') for val in df[col_name]]
-                    else:
-                        colors = color
-                    fig.add_trace(go.Bar(x=df.index, y=df[col_name], name=col_name, marker_color=colors), row=current_row, col=1)
-                else: # Default to line
+                    fig.add_trace(go.Bar(x=df.index, y=df[col_name], name=col_name, marker_color=color), row=current_row, col=1)
+                else:
                     fig.add_trace(go.Scatter(x=df.index, y=df[col_name], name=col_name, mode='lines', line=dict(color=color)), row=current_row, col=1)
 
-
-    # --- 5. Finalize Layout with Custom Colors and Crosshairs ---
+    # --- 5. Finalize Layout ---
     fig.update_layout(
-        title_text="Stock Analysis",
         height=400 + (150 * num_indicators),
         showlegend=False,
         plot_bgcolor=chart_colors.get('background', '#ffffff'),
         paper_bgcolor=chart_colors.get('background', '#ffffff'),
         font_color='gray',
-        xaxis=dict(
-            rangeslider=dict(visible=False),
-            type='date'
-        ),
-        yaxis=dict(
-            autorange=True,
-            fixedrange=False # Allow zooming
-        )
-    )
-
-    # Configure the crosshair
-    # Vertical line across all panes
-    fig.update_xaxes(showspikes=True, spikemode='across', spikesnap='cursor', spikethickness=1, spikedash='dot')
-    # Horizontal line on the hovered pane only
-    fig.update_yaxes(showspikes=True, spikethickness=1, spikedash='dot')
-    # Set hovermode to 'x unified' to sync crosshairs and tooltips across all subplots
-    fig.update_layout(
-        hovermode='x unified',
-        hoverlabel=dict(
-            bgcolor="rgba(200, 200, 200, 0.2)",
-            font_size=12,
-            font_family="Arial"
-        )
+        xaxis=dict(rangeslider=dict(visible=False)),
+        yaxis=dict(autorange=True, fixedrange=False)
     )
 
     # Adjust subplot title positions to be on the top left
