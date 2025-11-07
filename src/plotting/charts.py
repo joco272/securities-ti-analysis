@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: list):
     """
     Creates a customizable, multi-pane Plotly chart with candlesticks, volume, and selected indicators.
-    This is a simplified version with problematic UI features reverted.
+    This version includes a targeted fix for the y-axis autoscaling issue.
     """
     # --- 1. Define Indicator Plotting Logic ---
     indicator_map = {
@@ -79,11 +79,29 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         plot_bgcolor='#ffffff',
         paper_bgcolor='#ffffff',
         font_color='gray',
-        xaxis=dict(rangeslider=dict(visible=False))
+        xaxis=dict(
+            rangeslider=dict(visible=False),
+            # This is the key to linking zoom across subplots
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=1, label="1m", step="month", stepmode="backward"),
+                    dict(count=6, label="6m", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(count=1, label="1y", step="year", stepmode="backward"),
+                    dict(step="all")
+                ])
+            ),
+            type="date"
+        )
     )
 
-    # Enable autoscaling on all y-axes to fit the visible data on zoom
-    fig.update_yaxes(autorange=True, fixedrange=False)
+    # --- 6. Explicitly Enable Autoscaling on All Y-Axes ---
+    # This is a more robust way to ensure all y-axes, including secondary ones,
+    # will autoscale when the x-axis range is changed by zooming or panning.
+    for axis in fig.layout:
+        if axis.startswith('yaxis'):
+            fig.layout[axis].autorange = True
+            fig.layout[axis].fixedrange = False # Ensure y-axis is not fixed
 
     # Adjust subplot title positions to be on the top left
     for annotation in fig['layout']['annotations']:
