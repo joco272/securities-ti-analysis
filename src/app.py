@@ -55,35 +55,6 @@ def main():
     available_indicators = ["MACD", "RSI", "MFI", "Stochastic RSI", "OBV", "A/D", "Awesome Oscillator"]
     selected_indicators = st.sidebar.multiselect("Select indicators to display:", available_indicators, default=["MACD", "RSI"])
 
-    # --- Chart Settings ---
-    st.sidebar.header("Chart Settings")
-
-    # Initialize session state for colors if it doesn't exist
-    if 'chart_colors' not in st.session_state:
-        st.session_state.chart_colors = {
-            'background': '#ffffff',
-            'bullish_candle': '#26a69a',
-            'bearish_candle': '#ef5350',
-            'macd_line': '#009688',
-            'macdsignal_line': '#ff5722',
-            'macdhist': '#607d8b'
-        }
-
-    color_options = {
-        "Background": ["background"],
-        "Candlesticks": ["bullish_candle", "bearish_candle"],
-        "MACD": ["macd_line", "macdsignal_line", "macdhist"]
-    }
-
-    selected_element = st.sidebar.selectbox("Choose element to color:", list(color_options.keys()))
-
-    for key in color_options[selected_element]:
-        # Create a more descriptive label for the color picker
-        label = key.replace('_', ' ').replace('candle', ' Candle').replace('line', ' Line').title()
-        st.session_state.chart_colors[key] = st.sidebar.color_picker(
-            label, st.session_state.chart_colors[key]
-        )
-
     # --- Backtesting Parameters ---
     st.sidebar.header("Backtesting Parameters")
     strategy_indicator = st.sidebar.selectbox("Select a strategy:", ["RSI", "MFI", "Stochastic RSI", "MACD"])
@@ -110,8 +81,7 @@ def main():
     with col1:
         if st.button("Fetch, Store, and Analyze"):
             display_df, fig = run_analysis(
-                ticker_input, interval, start_date, end_date, selected_indicators,
-                st.session_state.chart_colors
+                ticker_input, interval, start_date, end_date, selected_indicators
             )
             if display_df is not None and fig is not None:
                 st.session_state.display_df = display_df
@@ -225,7 +195,7 @@ def main():
         st.dataframe(trans_df)
 
 
-def run_analysis(ticker, interval, start_date, end_date, selected_indicators, chart_colors):
+def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
     try:
         with st.spinner("Processing..."):
             # --- 1. Fetch fresh data from yfinance ---
@@ -248,7 +218,7 @@ def run_analysis(ticker, interval, start_date, end_date, selected_indicators, ch
             return None, None
 
         # --- 5. Create Chart ---
-        fig = create_multi_pane_chart(display_df, ticker, selected_indicators, chart_colors)
+        fig = create_multi_pane_chart(display_df, ticker, selected_indicators)
 
         st.success("Analysis complete!")
 

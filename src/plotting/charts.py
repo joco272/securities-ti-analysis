@@ -2,7 +2,7 @@ import pandas as pd
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: list, chart_colors: dict):
+def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: list):
     """
     Creates a customizable, multi-pane Plotly chart with candlesticks, volume, and selected indicators.
     This is a simplified version with problematic UI features reverted.
@@ -10,9 +10,9 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     # --- 1. Define Indicator Plotting Logic ---
     indicator_map = {
         "MACD": [
-            {"col": "macd", "type": "line", "color_key": "macd_line"},
-            {"col": "macdsignal", "type": "line", "color_key": "macdsignal_line"},
-            {"col": "macdhist", "type": "bar", "color_key": "macdhist"}
+            {"col": "macd", "type": "line", "color": "#009688"},
+            {"col": "macdsignal", "type": "line", "color": "#ff5722"},
+            {"col": "macdhist", "type": "bar", "color": "#607d8b"}
         ],
         "RSI": [{"col": "rsi", "type": "line"}],
         "MFI": [{"col": "mfi", "type": "line"}],
@@ -46,8 +46,8 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         low=df['low'],
         close=df['close'],
         name='Price',
-        increasing_line_color=chart_colors.get('bullish_candle', '#26a69a'),
-        decreasing_line_color=chart_colors.get('bearish_candle', '#ef5350')
+        increasing_line_color='#26a69a',
+        decreasing_line_color='#ef5350'
     ), row=1, col=1)
 
     fig.add_trace(go.Bar(
@@ -66,8 +66,7 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
             col_name = plot_info["col"]
             if col_name in df.columns:
                 plot_type = plot_info["type"]
-                color_key = plot_info.get("color_key")
-                color = chart_colors.get(color_key) if color_key else None
+                color = plot_info.get("color")
                 if plot_type == "bar":
                     fig.add_trace(go.Bar(x=df.index, y=df[col_name], name=col_name, marker_color=color), row=current_row, col=1)
                 else:
@@ -77,12 +76,14 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
     fig.update_layout(
         height=400 + (150 * num_indicators),
         showlegend=False,
-        plot_bgcolor=chart_colors.get('background', '#ffffff'),
-        paper_bgcolor=chart_colors.get('background', '#ffffff'),
+        plot_bgcolor='#ffffff',
+        paper_bgcolor='#ffffff',
         font_color='gray',
-        xaxis=dict(rangeslider=dict(visible=False)),
-        yaxis=dict(autorange=True, fixedrange=False)
+        xaxis=dict(rangeslider=dict(visible=False))
     )
+
+    # Enable autoscaling on all y-axes to fit the visible data on zoom
+    fig.update_yaxes(autorange=True, fixedrange=False)
 
     # Adjust subplot title positions to be on the top left
     for annotation in fig['layout']['annotations']:
