@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: list):
     """
     Creates a customizable, multi-pane Plotly chart with candlesticks, volume, and selected indicators.
-    This version includes a targeted fix for the y-axis autoscaling issue.
+    This version includes a highly targeted fix for the y-axis autoscaling issue.
     """
     # --- 1. Define Indicator Plotting Logic ---
     indicator_map = {
@@ -56,7 +56,6 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         name='Volume',
         marker_color='rgba(128,128,128,0.3)'
     ), row=1, col=1, secondary_y=True)
-    fig.update_yaxes(showticklabels=False, secondary_y=True)
 
     # --- 4. Dynamically Add Indicator Subplots ---
     for i, indicator_name in enumerate(indicators_to_plot):
@@ -79,29 +78,18 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         plot_bgcolor='#ffffff',
         paper_bgcolor='#ffffff',
         font_color='gray',
-        xaxis=dict(
-            rangeslider=dict(visible=False),
-            # This is the key to linking zoom across subplots
-            rangeselector=dict(
-                buttons=list([
-                    dict(count=1, label="1m", step="month", stepmode="backward"),
-                    dict(count=6, label="6m", step="month", stepmode="backward"),
-                    dict(count=1, label="YTD", step="year", stepmode="todate"),
-                    dict(count=1, label="1y", step="year", stepmode="backward"),
-                    dict(step="all")
-                ])
-            ),
-            type="date"
-        )
+        xaxis=dict(rangeslider=dict(visible=False)),
     )
 
-    # --- 6. Explicitly Enable Autoscaling on All Y-Axes ---
-    # This is a more robust way to ensure all y-axes, including secondary ones,
-    # will autoscale when the x-axis range is changed by zooming or panning.
-    for axis in fig.layout:
-        if axis.startswith('yaxis'):
-            fig.layout[axis].autorange = True
-            fig.layout[axis].fixedrange = False # Ensure y-axis is not fixed
+    # --- 6. Explicitly Enable Autoscaling on All Y-Axes (Targeted Approach) ---
+    # Apply autoscaling to the main price chart's primary y-axis
+    fig.update_yaxes(autorange=True, fixedrange=False, row=1, col=1, secondary_y=False)
+    # Apply autoscaling to the volume chart's secondary y-axis
+    fig.update_yaxes(autorange=True, fixedrange=False, row=1, col=1, secondary_y=True, showticklabels=False)
+
+    # Apply autoscaling to each indicator subplot's y-axis
+    for i in range(num_indicators):
+        fig.update_yaxes(autorange=True, fixedrange=False, row=i + 2, col=1)
 
     # Adjust subplot title positions to be on the top left
     for annotation in fig['layout']['annotations']:
