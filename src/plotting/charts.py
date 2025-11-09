@@ -78,6 +78,7 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
                     fig.add_trace(go.Scatter(x=df.index, y=df[col_name], name=col_name, mode='lines', line=dict(color=color)), row=current_row, col=1)
 
     # --- 6. Finalize Layout ---
+    # Relying on Plotly's default autorange behavior now that the secondary_y conflict is resolved.
     fig.update_layout(
         height=200 + (150 * num_rows), # Adjust height based on number of rows
         showlegend=False,
@@ -85,12 +86,6 @@ def create_multi_pane_chart(df: pd.DataFrame, ticker: str, selected_indicators: 
         paper_bgcolor='#ffffff',
         font_color='gray',
         xaxis=dict(rangeslider=dict(visible=False)),
-        # Ensure all y-axes are not fixed now that the conflicting secondary_y is gone
-        yaxis=dict(autorange=True, fixedrange=False),
-        yaxis2=dict(autorange=True, fixedrange=False),
-        yaxis3=dict(autorange=True, fixedrange=False),
-        yaxis4=dict(autorange=True, fixedrange=False), # Add more if more indicators are possible
-        yaxis5=dict(autorange=True, fixedrange=False)
     )
 
     # Adjust subplot title positions to be on the top left
