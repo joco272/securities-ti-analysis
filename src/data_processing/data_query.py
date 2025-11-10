@@ -10,7 +10,7 @@ from database import get_db_connection
 def fetch_data_with_indicators(ticker: str, interval: str) -> pd.DataFrame:
     """
     Fetches price data and its associated indicators from the database,
-    and reconstructs it into a single wide DataFrame.
+    and reconstructs it into a single wide DataFrame efficiently.
 
     Args:
         ticker: The stock ticker symbol.
@@ -44,41 +44,39 @@ def fetch_data_with_indicators(ticker: str, interval: str) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
 
-    # Pivot the table to create a "wide" format
-    # The index will be the timestamp, and columns will be the base OHLCV fields plus each indicator
-    pivot_df = df.pivot_table(
-        index='timestamp',
-        columns='indicator_name',
-        values='indicator_values',
-        aggfunc='first'
-    ).reset_index()
-
-    # Merge the pivoted indicator data back with the OHLCV data
+    # 1. Create the base OHLCV DataFrame
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
     ohlcv_df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].drop_duplicates().set_index('timestamp')
-    final_df = ohlcv_df.join(pivot_df.set_index('timestamp'))
 
-    # Parse the JSON strings and expand them into separate columns
-    json_cols = [col for col in final_df.columns if col not in ['open', 'high', 'low', 'close', 'volume']]
+    # 2. Process each indicator separately and efficiently
+    indicator_dfs = []
+    # Drop rows where indicator_name is null (from LEFT JOIN with no match)
+    df.dropna(subset=['indicator_name', 'indicator_values'], inplace=True)
 
-    for col_name in json_cols:
-        # 1. Parse the JSON strings from the column into a temporary DataFrame
-        parsed_data = final_df[col_name].apply(lambda x: json.loads(x) if pd.notna(x) else {})
+    unique_indicator_names = df['indicator_name'].unique()
+
+    for name in unique_indicator_names:
+        # Filter for the current indicator
+        indicator_subset = df[df['indicator_name'] == name][['timestamp', 'indicator_values']].set_index('timestamp')
+
+        # Parse JSON and normalize
+        parsed_data = indicator_subset['indicator_values'].apply(json.loads)
         expanded_df = pd.json_normalize(parsed_data)
+        expanded_df.index = indicator_subset.index
 
-        # 2. Rename the new columns to avoid collisions (e.g., 'value' becomes 'rsi', 'macd' becomes 'macd_macd')
-        expanded_df.rename(columns=lambda x: f"{col_name}_{x}" if x != 'value' else col_name, inplace=True)
-        expanded_df.index = final_df.index
+        # Rename columns to avoid collisions
+        expanded_df.rename(columns=lambda x: f"{name}_{x}" if x != 'value' else name, inplace=True)
+        indicator_dfs.append(expanded_df)
 
-        # 3. Drop the original JSON column from the main DataFrame
-        final_df.drop(columns=[col_name], inplace=True)
+    # 3. Join the base OHLCV data with all expanded indicator dataframes
+    final_df = ohlcv_df
+    if indicator_dfs:
+        all_indicators_df = pd.concat(indicator_dfs, axis=1)
+        # Remove duplicate columns that might arise
+        all_indicators_df = all_indicators_df.loc[:,~all_indicators_df.columns.duplicated()]
+        final_df = final_df.join(all_indicators_df, how='left')
 
-        # 4. Join the new, expanded columns
-        final_df = final_df.join(expanded_df)
-
-    # Convert timestamp index back to Datetime object for compatibility with backtesting library
-    final_df.index = pd.to_datetime(final_df.index)
-
-    # Rename columns to match what the rest of the app expects (e.g., 'macd_macd' to 'macd')
+    # 4. Final column renaming and type conversion
     final_df.rename(columns={
         'macd_macd': 'macd',
         'macd_signal': 'macdsignal',
@@ -87,8 +85,8 @@ def fetch_data_with_indicators(ticker: str, interval: str) -> pd.DataFrame:
         'stoch_rsi_d': 'stoch_rsi_d',
         'sma_sma50': 'sma50',
         'sma_sma200': 'sma200',
-        'ao': 'ao' # This was missing
-    }, inplace=True)
+        'ao': 'ao'
+    }, inplace=True, errors='ignore')
 
     # Ensure OHLCV columns are of the correct type
     for col in ['open', 'high', 'low', 'close', 'volume']:

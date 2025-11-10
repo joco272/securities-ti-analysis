@@ -1,49 +1,67 @@
-from backtesting import Backtest, Strategy
-from backtesting.lib import crossover
+import vectorbt as vbt
 import pandas as pd
+import numpy as np
 
-class RsiOscillator(Strategy):
+def run_backtest(data: pd.DataFrame, indicator: str, lower_bound: int, upper_bound: int, macd_strategy: str = None):
     """
-    A simple RSI-based trading strategy.
-    It buys when RSI crosses below the lower bound and sells when it crosses above the upper bound.
+    Runs a backtest using vectorbt based on a selected indicator and bounds.
+
+    Args:
+        data: DataFrame with OHLCV data and indicator columns.
+        indicator: The name of the indicator column to use (e.g., 'rsi', 'mfi').
+        lower_bound: The lower bound for the buy signal.
+        upper_bound: The upper bound for the sell signal.
+        macd_strategy: The MACD strategy to use, if applicable.
+
+    Returns:
+        A dictionary with key backtesting stats.
     """
-    upper_bound = 70
-    lower_bound = 30
+    if indicator not in data.columns:
+        raise ValueError(f"Dataframe must contain an '{indicator}' column for backtesting.")
 
-    def init(self):
-        # The backtesting library automatically uses the column named 'rsi' from the data feed.
-        pass
+    # --- 1. Define Entry and Exit Signals ---
+    if indicator == "MACD":
+        if macd_strategy == "Crossover":
+            entries = data['macd'] > data['macdsignal']
+            exits = data['macd'] < data['macdsignal']
+        elif macd_strategy == "Level":
+            entries = data['macd'] > lower_bound
+            exits = data['macd'] < lower_bound
+    else:
+        entries = data[indicator] < lower_bound
+        exits = data[indicator] > upper_bound
 
-    def next(self):
-        if crossover(self.data.rsi, self.upper_bound):
-            self.position.close()
-        elif crossover(self.lower_bound, self.data.rsi):
-            self.buy()
+    # --- 2. Run the Portfolio Simulation ---
+    portfolio = vbt.Portfolio.from_signals(
+        close=data['close'],
+        entries=entries,
+        exits=exits,
+        init_cash=10000,
+        fees=0.002, # 0.2% commission
+        freq='D' # Assume daily frequency for now
+    )
 
-def run_backtest(data: pd.DataFrame):
-    """
-    Runs a backtest on the given data, which must contain OHLCV and 'rsi' columns.
-    The column names for OHLCV must be capitalized: 'Open', 'High', 'Low', 'Close', 'Volume'.
-    """
-    # The backtesting library requires capitalized column names for OHLCV.
-    data_for_backtest = data.copy()
-    data_for_backtest.rename(columns={
-        'open': 'Open',
-        'high': 'High',
-        'low': 'Low',
-        'close': 'Close',
-        'volume': 'Volume'
-    }, inplace=True)
+    # --- 3. Extract and Return Key Statistics ---
+    stats = portfolio.stats()
+    total_trades = int(stats.get('Total Trades', 0))
 
-    bt = Backtest(data_for_backtest, RsiOscillator, cash=10000, commission=.002)
-    stats = bt.run()
-    return stats
+    # Handle cases with no trades, which can result in NaN or inf values
+    if total_trades == 0:
+        sharpe_ratio = 0.0
+        win_rate = 0.0
+    else:
+        sharpe_ratio = stats.get('Sharpe Ratio', 0.0)
+        win_rate = stats.get('Win Rate [%]', 0.0)
+        # Replace inf with 0, as it typically happens with zero std dev in returns (no losing trades)
+        if np.isinf(sharpe_ratio):
+            sharpe_ratio = 0.0
+
+    return {
+        "Total Trades": total_trades,
+        "Sharpe Ratio": float(sharpe_ratio),
+        "Win Rate [%]": float(win_rate)
+    }
 
 if __name__ == '__main__':
-    # This block is for demonstrating the backtesting framework.
-    # In the main app, the data is fetched and reconstructed from the database.
-
-    # This is a placeholder for a direct data fetch for testing purposes.
-    # A real test would pull from a saved file or a small, self-contained dataset.
     print("This module is intended to be used by the main application.")
-    print("To test, run the main app and trigger the analysis.")
+    print("To test, run the main app and trigger an analysis which will then call this backtesting framework.")

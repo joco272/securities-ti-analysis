@@ -4,7 +4,7 @@ numpy
 ta-lib
 yfinance
 scikit-learn
-backtesting
+vectorbt
 streamlit
 pandas-ta
 plotly

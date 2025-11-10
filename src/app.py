@@ -3,6 +3,9 @@ import pandas as pd
 import sys
 import os
 
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from data_processing.data_retrieval import fetch_ohlcv
 from data_processing.indicators import calculate_indicators
 from data_processing.data_storage import write_indicators_to_db
@@ -45,16 +48,65 @@ def main():
     st.sidebar.header("Analysis Parameters")
     ticker_input = st.sidebar.text_input("Enter a stock ticker (e.g., AAPL):", "AAPL")
     interval = st.sidebar.selectbox("Select interval:", ('15m', '1h', '4h', '1d'), index=3)
-    start_date = st.sidebar.date_input("Start date", pd.to_datetime("2023-01-01"))
+    start_date = st.sidebar.date_input("Start date", pd.to_datetime("2020-01-01"))
     end_date = st.sidebar.date_input("End date", pd.to_datetime("2023-12-31"))
 
     # --- Indicator Selection ---
     available_indicators = ["MACD", "RSI", "MFI", "Stochastic RSI", "OBV", "A/D", "Awesome Oscillator"]
     selected_indicators = st.sidebar.multiselect("Select indicators to display:", available_indicators, default=["MACD", "RSI"])
 
-    if st.sidebar.button("Fetch, Store, and Analyze"):
-        # This block remains for the analysis part of the app
-        run_analysis(ticker_input, interval, start_date, end_date, selected_indicators)
+    # --- Backtesting Parameters ---
+    st.sidebar.header("Backtesting Parameters")
+    strategy_indicator = st.sidebar.selectbox("Select a strategy:", ["RSI", "MFI", "Stochastic RSI", "MACD"])
+
+    # Set default values based on the selected strategy
+    if strategy_indicator == "RSI":
+        defaults = (30, 70)
+    elif strategy_indicator in ["MFI", "Stochastic RSI"]:
+        defaults = (20, 80)
+    else: # MACD
+        defaults = (0, 0) # Not used for MACD
+
+    if strategy_indicator == "MACD":
+        macd_strategy = st.sidebar.selectbox("MACD Strategy Type:", ["Crossover", "Level"])
+        if macd_strategy == "Level":
+            macd_level = st.sidebar.number_input("MACD Level", value=0.0)
+        lower_bound = upper_bound = macd_level if macd_strategy == "Level" else 0
+    else:
+        lower_bound = st.sidebar.slider("Lower Bound", 0, 100, defaults[0])
+        upper_bound = st.sidebar.slider("Upper Bound", 0, 100, defaults[1])
+        macd_strategy = None
+
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("Fetch, Store, and Analyze"):
+            display_df, fig = run_analysis(
+                ticker_input, interval, start_date, end_date, selected_indicators
+            )
+            if display_df is not None and fig is not None:
+                st.session_state.display_df = display_df
+                st.session_state.fig = fig
+    with col2:
+        if st.button("Perform Backtest"):
+            results = perform_backtest(ticker_input, interval, strategy_indicator, lower_bound, upper_bound, macd_strategy)
+            if results is not None:
+                st.session_state.results = results
+
+    if 'display_df' in st.session_state and 'fig' in st.session_state:
+        st.subheader(f"Displaying Data for {ticker_input} ({interval})")
+        st.plotly_chart(st.session_state.fig, use_container_width=True)
+        st.subheader("Latest Data and Indicators")
+        st.dataframe(st.session_state.display_df.tail())
+
+    if 'results' in st.session_state:
+        st.subheader("Backtesting Results")
+        # Check if any trades were executed before displaying stats
+        if st.session_state.results['Total Trades'] > 0:
+            st.write(f"Total Trades: {st.session_state.results['Total Trades']}")
+            st.write(f"Sharpe Ratio: {st.session_state.results['Sharpe Ratio']:.2f}")
+            st.write(f"Win Rate [%]: {st.session_state.results['Win Rate [%]']:.2f}")
+        else:
+            st.info("No trades were executed for the selected parameters.")
 
     # --- Portfolio Management Section ---
     st.sidebar.markdown("---")
@@ -144,52 +196,64 @@ def main():
 
 
 def run_analysis(ticker, interval, start_date, end_date, selected_indicators):
-    with st.spinner("Processing..."):
-        try:
+    try:
+        with st.spinner("Processing..."):
             # --- 1. Fetch fresh data from yfinance ---
-            st.write(f"Fetching fresh data for {ticker}...")
             ohlcv_data = fetch_ohlcv(ticker, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), interval)
             if ohlcv_data.empty:
                 st.warning(f"No new data found for {ticker}.")
-                return
+                return None, None
 
             # --- 2. Calculate Indicators ---
-            st.write("Calculating technical indicators...")
             data_with_indicators = calculate_indicators(ohlcv_data)
 
             # --- 3. Store Price and Indicators in DB ---
-            st.write("Storing data in the database...")
             write_indicators_to_db(ticker, interval, data_with_indicators)
-            st.success(f"Successfully processed and stored data for {len(data_with_indicators)} records.")
 
             # --- 4. Query and Reconstruct Data from DB ---
-            st.write("Querying data from the database for display...")
             display_df = fetch_data_with_indicators(ticker, interval)
 
+        if display_df.empty:
+            st.warning("No data found in the database for the selected parameters.")
+            return None, None
+
+        # --- 5. Create Chart ---
+        fig = create_multi_pane_chart(display_df, ticker, selected_indicators)
+
+        st.success("Analysis complete!")
+
+        return display_df, fig
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return None, None
+
+def perform_backtest(ticker, interval, strategy_indicator, lower_bound, upper_bound, macd_strategy):
+    try:
+        with st.spinner("Performing backtest..."):
+            display_df = fetch_data_with_indicators(ticker, interval)
             if display_df.empty:
-                st.warning("No data found in the database for the selected parameters.")
-                return
+                st.warning("No data found for backtesting. Please run the analysis first.")
+                return None
 
-            # --- 5. Display Data and Indicators ---
-            st.subheader(f"Displaying Data for {ticker} ({interval})")
+            # Map strategy name to indicator column
+            indicator_map = {
+                "RSI": "rsi",
+                "MFI": "mfi",
+                "Stochastic RSI": "stoch_rsi.k", # Using the %K line
+                "MACD": "MACD" # Special case for MACD
+            }
+            indicator_to_backtest = indicator_map.get(strategy_indicator)
 
-            # Create and display the advanced multi-pane chart
-            fig = create_multi_pane_chart(display_df, selected_indicators)
-            st.plotly_chart(fig, use_container_width=True)
+            results = run_backtest(display_df.dropna(), indicator_to_backtest, lower_bound, upper_bound, macd_strategy)
 
-            st.subheader("Latest Data and Indicators")
-            st.dataframe(display_df.tail())
+            st.success("Backtest complete!")
 
-            # --- 6. Run Backtest ---
-            st.subheader("Backtesting Results")
-            results = run_backtest(display_df.dropna())
+            return results
 
-            # --- 7. Display Backtest Results ---
-            st.write(f"Sharpe Ratio: {results['Sharpe Ratio']:.2f}")
-            st.write(f"Win Rate [%]: {results['Win Rate [%]']:.2f}")
-
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+    except Exception as e:
+        st.error(f"An error occurred during backtesting: {e}")
+        return None
 
 if __name__ == "__main__":
     main()
